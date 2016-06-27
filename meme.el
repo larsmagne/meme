@@ -43,12 +43,16 @@
   "Major mode for creating meme images.
 
 \\{meme-mode-map}"
-  
   )
 
 (defvar meme--select-map
   (let ((map (make-sparse-keymap)))
     (define-key map "\r" 'meme-select-image)
+    map))
+
+(defvar meme--submit-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map "\r" 'meme-create-image)
     map))
 
 (defun meme--insert-thumbnails ()
@@ -96,10 +100,12 @@
     (insert "Top    ")
     (setq top (point))
     (eww-form-text (dom-node 'input '((size . "60") (name . "top"))))
+    (put-text-property top (point) 'keymap meme--submit-map)
     (insert "\n")
     (insert "Bottom ")
     (setq bottom (point))
     (eww-form-text (dom-node 'input '((size . "60") (name . "bottom"))))
+    (put-text-property bottom (point) 'keymap meme--submit-map)
     (insert "\n")
     (svg-insert-image svg)
     (svg-embed svg file "image/jpeg" nil
@@ -107,6 +113,7 @@
 	       :height height)
     (eww-size-text-inputs)
     (goto-char top)
+    (setq-local meme-svg svg)
     (setq after-change-functions nil)
     (add-hook 'after-change-functions #'eww-process-text-input nil t)
     (setq-local post-command-hook nil)
@@ -119,12 +126,19 @@
     nil))
 
 (defun meme--update-meme (svg top bottom)
-  (let* ((string (upcase (string-trim (plist-get top :value))))
-	 (inhibit-read-only t)
+  (let* ((inhibit-read-only t))
+    (meme--update-text svg top 50 nil)
+    (meme--update-text svg bottom 400 t)))
+
+(defun meme--update-text (svg elem y-offset bottom)
+  (let* ((string (upcase (string-trim (plist-get elem :value))))
 	 (bits (meme--fold-string string))
 	 (i 0))
+    (when (and bottom
+	       (> (length bits) 1))
+      (decf y-offset (* 40 (1- (length bits)))))
     (dotimes (i 10)
-      (svg-remove svg (format "%s-%d" (plist-get top :name) i)))
+      (svg-remove svg (format "%s-%d" (plist-get elem :name) i)))
     (dolist (bit bits)
       (svg-text svg bit
 		:font-size "40"
@@ -134,9 +148,9 @@
 		:font-family "impact"
 		:letter-spacing "-3pt"
 		:x (- (/ 400 2) (/ (meme--text-width bit) 2))
-		:y (+ 50 (* i 40))
+		:y (+ y-offset (* i 40))
 		:stroke-width 1
-		:id (format "%s-%d" (plist-get top :name) i))
+		:id (format "%s-%d" (plist-get elem :name) i))
       (incf i))))
 
 (defun meme--fold-string (string)
@@ -169,7 +183,15 @@
     (insert (propertize string 'face '(:family "impact" :height 400)))
     (let ((shr-use-fonts t))
       (shr-pixel-column))))
-    
+
+(defun meme-create-image (file)
+  "Write the meme in the current buffer to a file."
+  (interactive "FFile name to write to: ")
+  (let ((svg meme-svg))
+    (with-temp-buffer
+      (svg-print svg)
+      (write-region (point-min) (point-max) file))))
+
 (provide 'meme)
 
 ;;; meme.el ends here
