@@ -84,14 +84,15 @@
     (meme--setup-image file)))
 
 (defun meme--setup-image (file)
-  (erase-buffer)
   (let* ((image (create-image file 'imagemagick))
 	 (image-size (image-size image t))
 	 (width 400)
 	 (height (* (cdr image-size) (/ width (float (car image-size)))))
 	 (svg (svg-create width height
 			  :xmlns:xlink "http://www.w3.org/1999/xlink"))
+	 (inhibit-read-only t)
 	 top bottom data)
+    (erase-buffer)
     (insert "Top    ")
     (setq top (point))
     (eww-form-text (dom-node 'input '((size . "60") (name . "top"))))
@@ -108,25 +109,67 @@
     (goto-char top)
     (setq after-change-functions nil)
     (add-hook 'after-change-functions #'eww-process-text-input nil t)
-    (setq post-command-hook nil)
+    (setq-local post-command-hook nil)
+    (setq buffer-read-only t)
     (add-hook 'post-command-hook
 	      (lambda ()
 		(meme--update-meme svg
 				   (get-text-property top 'eww-form)
-				   (get-text-property bottom 'eww-form))))))
+				   (get-text-property bottom 'eww-form))))
+    nil))
 
 (defun meme--update-meme (svg top bottom)
-  (svg-text svg (upcase (string-trim (plist-get top :value)))
-	    :font-size "40"
-	    :font-weight "bold"
-	    :stroke "black"
-	    :fill "white"
-	    :font-family "impact"
-	    :letter-spacing "-3pt"
-	    :x "0px" :y "100px"
-	    :stroke-width 1
-	    :id (plist-get top :name)))
+  (let* ((string (upcase (string-trim (plist-get top :value))))
+	 (inhibit-read-only t)
+	 (bits (meme--fold-string string))
+	 (i 0))
+    (dotimes (i 10)
+      (svg-remove svg (format "%s-%d" (plist-get top :name) i)))
+    (dolist (bit bits)
+      (svg-text svg bit
+		:font-size "40"
+		:font-weight "bold"
+		:stroke "black"
+		:fill "white"
+		:font-family "impact"
+		:letter-spacing "-3pt"
+		:x (- (/ 400 2) (/ (meme--text-width bit) 2))
+		:y (+ 50 (* i 40))
+		:stroke-width 1
+		:id (format "%s-%d" (plist-get top :name) i))
+      (incf i))))
 
+(defun meme--fold-string (string)
+  (with-temp-buffer
+    (insert string)
+    (goto-char (point-min))
+    (let ((prev (point)))
+      (while (meme--next-point)
+	(when (> (meme--text-width (buffer-substring (line-beginning-position)
+						     (point)))
+		 380)
+	  (unless (= prev (line-beginning-position))
+	    (goto-char prev))
+	  (delete-char -1)
+	  (insert "\n"))
+	(setq prev (point)))
+      (split-string (buffer-string) "\n"))))
+
+(defun meme--next-point ()
+  (and (not (eobp))
+       (or (search-forward " " (point-max) 'bound)
+	   (eobp))))
+
+(defun meme--text-width (string)
+  (let ((ratio (/ (float (meme--text-pixels "x")) 17)))
+    (/ (meme--text-pixels string) ratio)))
+
+(defun meme--text-pixels (string)
+  (with-temp-buffer
+    (insert (propertize string 'face '(:family "impact" :height 400)))
+    (let ((shr-use-fonts t))
+      (shr-pixel-column))))
+    
 (provide 'meme)
 
 ;;; meme.el ends here
