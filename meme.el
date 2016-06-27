@@ -26,10 +26,12 @@
 (require 'cl)
 (require 'eww)
 
+(defvar meme-svg)
+
 (defun meme ()
   "Create a meme image interactively in Emacs."
   (interactive)
-  (pop-to-buffer (get-buffer-create "*meme*"))
+  (switch-to-buffer (get-buffer-create "*meme*"))
   (meme-mode)
   (meme--insert-thumbnails))
 
@@ -39,10 +41,11 @@
     ;;(define-key map " " 'archive-next-line)
     map))
 
-(define-derived-mode meme-mode meme-mode "Meme"
+(define-derived-mode meme-mode special-mode "Meme"
   "Major mode for creating meme images.
 
 \\{meme-mode-map}"
+  nil
   )
 
 (defvar meme--select-map
@@ -63,6 +66,7 @@
 		      (nth 0 (window-pixel-edges))
 		      20)
 		   pixels))
+	 (inhibit-read-only t)
 	 (i 0))
     (erase-buffer)
     (dolist (file (directory-files dir t ".jpg\\'"))
@@ -85,6 +89,8 @@
   "Start creating a meme from the image under point."
   (interactive)
   (let ((file (get-text-property (point) 'file)))
+    (unless file
+      (error "No file under point"))
     (meme--setup-image file)))
 
 (defun meme--setup-image (file)
@@ -95,7 +101,7 @@
 	 (svg (svg-create width height
 			  :xmlns:xlink "http://www.w3.org/1999/xlink"))
 	 (inhibit-read-only t)
-	 top bottom data)
+	 top bottom)
     (erase-buffer)
     (insert "Top    ")
     (setq top (point))
@@ -120,15 +126,15 @@
     (setq buffer-read-only t)
     (add-hook 'post-command-hook
 	      (lambda ()
-		(meme--update-meme svg
+		(meme--update-meme svg height
 				   (get-text-property top 'eww-form)
 				   (get-text-property bottom 'eww-form))))
     nil))
 
-(defun meme--update-meme (svg top bottom)
+(defun meme--update-meme (svg height top bottom)
   (let* ((inhibit-read-only t))
     (meme--update-text svg top 50 nil)
-    (meme--update-text svg bottom 400 t)))
+    (meme--update-text svg bottom (- height 10) t)))
 
 (defun meme--update-text (svg elem y-offset bottom)
   (let* ((string (upcase (string-trim (plist-get elem :value))))
@@ -146,7 +152,7 @@
 		:stroke "black"
 		:fill "white"
 		:font-family "impact"
-		:letter-spacing "-3pt"
+		:letter-spacing "-2.8pt"
 		:x (- (/ 400 2) (/ (meme--text-width bit) 2))
 		:y (+ y-offset (* i 40))
 		:stroke-width 1
