@@ -27,13 +27,27 @@
 (require 'eww)
 
 (defvar meme-svg)
+(defvar meme-column)
+(defvar meme-font)
 
 (defun meme ()
   "Create a meme image interactively in Emacs."
   (interactive)
   (switch-to-buffer (get-buffer-create "*meme*"))
   (meme-mode)
-  (meme--insert-thumbnails))
+  (meme--insert-thumbnails)
+  (setq-local post-command-hook nil)
+  (setq-local meme-column 0)
+  (add-hook 'post-command-hook 'meme--fix-point))
+
+(defun meme--fix-point ()
+  (let ((column (current-column)))
+    (when (get-text-property (point) 'meme-intangible)
+      (if (> column meme-column)
+	  (forward-char 1)
+	(backward-char 1))
+      (setq column (current-column)))
+    (setq meme-column column)))
 
 (defvar meme-mode-map
   (let ((map (make-keymap)))
@@ -45,8 +59,8 @@
   "Major mode for creating meme images.
 
 \\{meme-mode-map}"
-  nil
-  )
+  ;;(setq-local meme-font "impact")
+  (setq buffer-read-only t))
 
 (defvar meme--select-map
   (let ((map (make-sparse-keymap)))
@@ -70,14 +84,16 @@
 	 (i 0))
     (erase-buffer)
     (dolist (file (directory-files dir t ".jpg\\'"))
-      (unless (bolp)
+      (when (and (not (bolp))
+		 (not (= image-width pixels)))
 	(insert (propertize " " 'display
 			    `(space :align-to (,(* (mod i width) pixels)))
-			    'intangible t)))
-      (insert-image (create-image file 'imagemagick nil
-				  :max-width pixels
-				  :max-height pixels)
-		    " ")
+			    'meme-intangible t)))
+      (setq image (create-image file 'imagemagick nil
+				:max-width pixels
+				:max-height pixels))
+      (setq image-width (car (image-size image t)))
+      (insert-image image " ")
       (add-text-properties (1- (point)) (point)
 			   (list 'keymap meme--select-map
 				 'file file))
@@ -157,7 +173,8 @@
   (let* ((inhibit-read-only t))
     (meme--update-text svg top
 		       (+ (meme--value top :margin t)
-			  (meme--value top :size t))
+			  (meme--value top :size t)
+			  -10)
 		       nil)
     (meme--update-text svg bottom
 		       (- height (meme--value bottom :margin t))
@@ -167,7 +184,7 @@
   (let* ((elem (plist-get data :text))
 	 (string (upcase (string-trim (meme--value data :text))))
 	 (font-size (meme--value data :size t))
-	 (family (meme--value data :family t))
+	 (family (meme--value data :family))
 	 (bits (meme--fold-string string font-size family))
 	 (align (meme--value data :align))
 	 (i 0))
@@ -184,6 +201,7 @@
 		:fill (meme--value data :color)
 		:font-family (meme--value data :family)
 		:letter-spacing "-2.8pt"
+		:font-stretch 'condensed
 		:text-anchor (cond
 			      ((or (equal align "left")
 				   (string-match "^[0-9]+$" align))
@@ -217,7 +235,7 @@
 						     (point))
 				   font-size
 				   family)
-		 380)
+		 370)
 	  (unless (= prev (line-beginning-position))
 	    (goto-char prev))
 	  (delete-char -1)
@@ -231,15 +249,28 @@
 	   (eobp))))
 
 (defun meme--text-width (string font-size family)
-  (let ((ratio (/ (float (meme--text-pixels "X" font-size family)) 18)))
-    (/ (meme--text-pixels string font-size family) ratio)))
-
-(defun meme--text-pixels (string font-size family)
-  (with-temp-buffer
-    (insert (propertize string 'face '(:family family
-					       :height ,(* font-size 10))))
-    (let ((shr-use-fonts t))
-      (shr-pixel-column))))
+  (let ((fallback meme-font))
+    (prog1
+	(with-temp-buffer
+	  (let ((face (make-face 'meme-face)))
+	    (condition-case error
+		(progn
+		  (set-face-font
+		   foo
+		   (format "-*-%s-normal-normal-condensed-*-%s-*-*-*-*-0-iso10646-1"
+			   (capitalize family)
+			   font-size))
+		  (setq fallback family))
+	      (error
+	       (set-face-font
+		foo
+		(format "-*-%s-normal-normal-condensed-*-%s-*-*-*-*-0-iso10646-1"
+			(capitalize fallback)
+			font-size))))
+	    (insert (propertize string 'face foo))
+	    (let ((shr-use-fonts t))
+	      (shr-pixel-column))))
+      (setq meme-font fallback))))
 
 (defun meme-create-image (file)
   "Write the meme in the current buffer to a file."
