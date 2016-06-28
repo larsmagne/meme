@@ -253,21 +253,21 @@
     (prog1
 	(with-temp-buffer
 	  (let ((face (make-face 'meme-face)))
-	    (condition-case error
+	    (condition-case _error
 		(progn
 		  (set-face-font
-		   foo
+		   face
 		   (format "-*-%s-normal-normal-condensed-*-%s-*-*-*-*-0-iso10646-1"
 			   (capitalize family)
 			   font-size))
 		  (setq fallback family))
 	      (error
 	       (set-face-font
-		foo
+		face
 		(format "-*-%s-normal-normal-condensed-*-%s-*-*-*-*-0-iso10646-1"
 			(capitalize fallback)
 			font-size))))
-	    (insert (propertize string 'face foo))
+	    (insert (propertize string 'face 'meme-face))
 	    (let ((shr-use-fonts t))
 	      (shr-pixel-column))))
       (setq meme-font fallback))))
