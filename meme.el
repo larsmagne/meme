@@ -93,7 +93,30 @@
       (error "No file under point"))
     (meme--setup-image file)))
 
+(defun meme--text-input (name size &optional value)
+  (let ((start (point)))
+    (eww-form-text (dom-node 'input `((size . ,(format "%s" size))
+				      (name . ,name)
+				      (value . ,(or value "")))))
+    (put-text-property start (point) 'keymap meme--submit-map)
+    (get-text-property start 'eww-form)))
+
+(defun meme--insert-inputs (name)
+  (insert (format "%-7s" (capitalize name)))
+  (let ((elem (list :text (meme--text-input (format "%s-text" name) 60))))
+    (insert "\n       ")
+    (plist-put elem :width (meme--text-input
+			    (format "%s-width" name) 4 "20"))
+    (plist-put elem :color (meme--text-input
+			    (format "%s-color" name) 8 "white"))
+    (plist-put elem :align (meme--text-input
+			    (format "%s-align" name) 8 "middle"))
+    (insert "\n")
+    elem))
+
 (defun meme--setup-image (file)
+  (let ((inhibit-read-only t))
+    (erase-buffer))
   (let* ((image (create-image file 'imagemagick))
 	 (image-size (image-size image t))
 	 (width 400)
@@ -101,24 +124,14 @@
 	 (svg (svg-create width height
 			  :xmlns:xlink "http://www.w3.org/1999/xlink"))
 	 (inhibit-read-only t)
-	 top bottom)
-    (erase-buffer)
-    (insert "Top    ")
-    (setq top (point))
-    (eww-form-text (dom-node 'input '((size . "60") (name . "top"))))
-    (put-text-property top (point) 'keymap meme--submit-map)
-    (insert "\n")
-    (insert "Bottom ")
-    (setq bottom (point))
-    (eww-form-text (dom-node 'input '((size . "60") (name . "bottom"))))
-    (put-text-property bottom (point) 'keymap meme--submit-map)
-    (insert "\n")
+	 (top (meme--insert-inputs "top"))
+	 (bottom (meme--insert-inputs "bottom")))
     (svg-insert-image svg)
     (svg-embed svg file "image/jpeg" nil
 	       :width width
 	       :height height)
     (eww-size-text-inputs)
-    (goto-char top)
+    (goto-char (next-single-property-change (point-min) 'eww-form))
     (setq-local meme-svg svg)
     (setq after-change-functions nil)
     (add-hook 'after-change-functions #'eww-process-text-input nil t)
@@ -126,9 +139,7 @@
     (setq buffer-read-only t)
     (add-hook 'post-command-hook
 	      (lambda ()
-		(meme--update-meme svg height
-				   (get-text-property top 'eww-form)
-				   (get-text-property bottom 'eww-form))))
+		(meme--update-meme svg height top bottom)))
     nil))
 
 (defun meme--update-meme (svg height top bottom)
@@ -136,8 +147,9 @@
     (meme--update-text svg top 50 nil)
     (meme--update-text svg bottom (- height 10) t)))
 
-(defun meme--update-text (svg elem y-offset bottom)
-  (let* ((string (upcase (string-trim (plist-get elem :value))))
+(defun meme--update-text (svg data y-offset bottom)
+  (let* ((elem (plist-get data :text))
+	 (string (upcase (string-trim (plist-get elem :value))))
 	 (bits (meme--fold-string string))
 	 (i 0))
     (when (and bottom
