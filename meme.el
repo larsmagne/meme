@@ -113,6 +113,8 @@
 			    (format "%s-color" name) 8 "white"))
     (plist-put elem :align (meme--text-input
 			    (format "%s-align" name) 8 "middle"))
+    (plist-put elem :family (meme--text-input
+			     (format "%s-family" name) 10 "impact"))
     (insert "\n")
     elem))
 
@@ -164,7 +166,8 @@
   (let* ((elem (plist-get data :text))
 	 (string (upcase (string-trim (meme--value data :text))))
 	 (font-size (meme--value data :size t))
-	 (bits (meme--fold-string string))
+	 (bits (meme--fold-string string font-size))
+	 (align (meme--value data :align))
 	 (i 0))
     (when (and bottom
 	       (> (length bits) 1))
@@ -176,23 +179,33 @@
 		:font-size font-size
 		:font-weight "bold"
 		:stroke "black"
-		:fill "white"
-		:font-family "impact"
+		:fill (meme--value data :color)
+		:font-family (meme--value data :family)
 		:letter-spacing "-2.8pt"
-		:x (- (/ 400 2) (/ (meme--text-width bit) 2))
+		:x (cond
+		    ((or (equal align "left")
+			 (string-match "^[0-9]+$" align))
+		     (if (equal align "left")
+			 0
+		       (string-to-number align)))
+		    ((equal align "right")
+		     (- 400 (meme--text-width bit font-size)))
+		    (t			; "middle"
+		     (- (/ 400 2) (/ (meme--text-width bit font-size) 2))))
 		:y (+ y-offset (* i font-size))
 		:stroke-width 1
 		:id (format "%s-%d" (plist-get elem :name) i))
       (incf i))))
 
-(defun meme--fold-string (string)
+(defun meme--fold-string (string font-size)
   (with-temp-buffer
     (insert string)
     (goto-char (point-min))
     (let ((prev (point)))
       (while (meme--next-point)
 	(when (> (meme--text-width (buffer-substring (line-beginning-position)
-						     (point)))
+						     (point))
+				   font-size)
 		 380)
 	  (unless (= prev (line-beginning-position))
 	    (goto-char prev))
@@ -206,13 +219,14 @@
        (or (search-forward " " (point-max) 'bound)
 	   (eobp))))
 
-(defun meme--text-width (string)
-  (let ((ratio (/ (float (meme--text-pixels "x")) 17)))
-    (/ (meme--text-pixels string) ratio)))
+(defun meme--text-width (string font-size)
+  (let ((ratio (/ (float (meme--text-pixels "X" font-size)) 17)))
+    (/ (meme--text-pixels string font-size) ratio)))
 
-(defun meme--text-pixels (string)
+(defun meme--text-pixels (string font-size)
   (with-temp-buffer
-    (insert (propertize string 'face '(:family "impact" :height 400)))
+    (insert (propertize string 'face '(:family "impact"
+					       :height ,(* font-size 10))))
     (let ((shr-use-fonts t))
       (shr-pixel-column))))
 
