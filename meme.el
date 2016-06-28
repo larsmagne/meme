@@ -161,6 +161,7 @@
     (add-hook 'post-command-hook
 	      (lambda ()
 		(meme--update-meme svg height top bottom)))
+    (set-buffer-modified-p nil)
     nil))
 
 (defun meme--value (elem name &optional number)
@@ -170,15 +171,17 @@
       value)))
 
 (defun meme--update-meme (svg height top bottom)
-  (let* ((inhibit-read-only t))
-    (meme--update-text svg top
-		       (+ (meme--value top :margin t)
-			  (meme--value top :size t)
-			  -10)
-		       nil)
-    (meme--update-text svg bottom
-		       (- height (meme--value bottom :margin t))
-		       t)))
+  (when (buffer-modified-p)
+    (let* ((inhibit-read-only t))
+      (meme--update-text svg top
+			 (+ (meme--value top :margin t)
+			    (meme--value top :size t)
+			    -10)
+			 nil)
+      (meme--update-text svg bottom
+			 (- height (meme--value bottom :margin t))
+			 t)
+      (set-buffer-modified-p nil))))
 
 (defun meme--update-text (svg data y-offset bottom)
   (let* ((elem (plist-get data :text))
