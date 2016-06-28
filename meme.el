@@ -184,6 +184,14 @@
 		:fill (meme--value data :color)
 		:font-family (meme--value data :family)
 		:letter-spacing "-2.8pt"
+		:text-anchor (cond
+			      ((or (equal align "left")
+				   (string-match "^[0-9]+$" align))
+			       "start")
+			      ((equal align "right")
+			       "end")
+			      (t
+			       "middle"))
 		:x (cond
 		    ((or (equal align "left")
 			 (string-match "^[0-9]+$" align))
@@ -191,10 +199,9 @@
 			 10
 		       (string-to-number align)))
 		    ((equal align "right")
-		     (- 390 (meme--text-width bit font-size family)))
-		    (t			; "middle"
-		     (- (/ 400 2) (/ (meme--text-width bit font-size family)
-				     2))))
+		     390)
+		    (t
+		     (/ 400 2)))
 		:y (+ y-offset (* i font-size))
 		:stroke-width 1
 		:id (format "%s-%d" (plist-get elem :name) i))
