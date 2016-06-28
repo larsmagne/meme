@@ -28,7 +28,7 @@
 
 (defvar meme-svg)
 (defvar meme-column)
-(defvar meme-font)
+(defvar meme-font "impact")
 
 (defun meme ()
   "Create a meme image interactively in Emacs."
