@@ -222,7 +222,8 @@
   (let ((svg meme-svg))
     (with-temp-buffer
       (svg-print svg)
-      (write-region (point-min) (point-max) file))))
+      (call-process-region (point-min) (point-max) "convert"
+			   nil nil nil "svg:-" file))))
 
 (provide 'meme)
 
