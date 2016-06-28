@@ -105,8 +105,10 @@
   (insert (format "%-7s" (capitalize name)))
   (let ((elem (list :text (meme--text-input (format "%s-text" name) 60))))
     (insert "\n       ")
-    (plist-put elem :width (meme--text-input
-			    (format "%s-width" name) 4 "20"))
+    (plist-put elem :margin (meme--text-input
+			     (format "%s-margin" name) 4 "20"))
+    (plist-put elem :size (meme--text-input
+			   (format "%s-size" name) 4 "40"))
     (plist-put elem :color (meme--text-input
 			    (format "%s-color" name) 8 "white"))
     (plist-put elem :align (meme--text-input
@@ -142,31 +144,43 @@
 		(meme--update-meme svg height top bottom)))
     nil))
 
+(defun meme--value (elem name &optional number)
+  (let ((value (plist-get (plist-get elem name) :value)))
+    (if number
+	(string-to-number value)
+      value)))
+
 (defun meme--update-meme (svg height top bottom)
   (let* ((inhibit-read-only t))
-    (meme--update-text svg top 50 nil)
-    (meme--update-text svg bottom (- height 10) t)))
+    (meme--update-text svg top
+		       (+ (meme--value top :margin t)
+			  (meme--value top :size t))
+		       nil)
+    (meme--update-text svg bottom
+		       (- height (meme--value bottom :margin t))
+		       t)))
 
 (defun meme--update-text (svg data y-offset bottom)
   (let* ((elem (plist-get data :text))
-	 (string (upcase (string-trim (plist-get elem :value))))
+	 (string (upcase (string-trim (meme--value data :text))))
+	 (font-size (meme--value data :size t))
 	 (bits (meme--fold-string string))
 	 (i 0))
     (when (and bottom
 	       (> (length bits) 1))
-      (decf y-offset (* 40 (1- (length bits)))))
+      (decf y-offset (* font-size (1- (length bits)))))
     (dotimes (i 10)
       (svg-remove svg (format "%s-%d" (plist-get elem :name) i)))
     (dolist (bit bits)
       (svg-text svg bit
-		:font-size "40"
+		:font-size font-size
 		:font-weight "bold"
 		:stroke "black"
 		:fill "white"
 		:font-family "impact"
 		:letter-spacing "-2.8pt"
 		:x (- (/ 400 2) (/ (meme--text-width bit) 2))
-		:y (+ y-offset (* i 40))
+		:y (+ y-offset (* i font-size))
 		:stroke-width 1
 		:id (format "%s-%d" (plist-get elem :name) i))
       (incf i))))
