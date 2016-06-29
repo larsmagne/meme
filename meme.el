@@ -212,7 +212,7 @@
 		:stroke "black"
 		:fill (meme--value data :color)
 		:font-family (meme--value data :family)
-		:letter-spacing "-2.8pt"
+		:letter-spacing (format "-%spt" (* font-size 0.07))
 		:font-stretch 'condensed
 		:text-anchor (cond
 			      ((or (equal align "left")
