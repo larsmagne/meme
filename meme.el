@@ -31,6 +31,7 @@
 
 (require 'cl)
 (require 'eww)
+(require 'svg)
 (require 'imgur)
 
 (defvar meme-svg)
