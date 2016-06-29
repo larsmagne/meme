@@ -25,6 +25,7 @@
 
 (require 'cl)
 (require 'eww)
+(require 'imgur)
 
 (defvar meme-svg)
 (defvar meme-column)
@@ -69,7 +70,7 @@
 
 (defvar meme--submit-map
   (let ((map (make-sparse-keymap)))
-    (define-key map "\r" 'meme-create-image)
+    (define-key map "\r" 'meme-save-or-upload)
     map))
 
 (defun meme--insert-thumbnails ()
@@ -146,6 +147,14 @@
 	 (inhibit-read-only t)
 	 (top (meme--insert-inputs "top"))
 	 (bottom (meme--insert-inputs "bottom")))
+    (insert (make-string 60 ? ))
+    (insert-image (create-image
+		   (expand-file-name
+		    "manual.png"
+		    (file-name-directory (locate-library "meme")))
+		   'imagemagick
+		   nil :max-width 120)
+		  " ")
     (insert "\n")
     (svg-insert-image svg)
     (svg-embed svg file "image/jpeg" nil
@@ -275,6 +284,28 @@
 	      (shr-pixel-column))))
       (setq meme-font fallback))))
 
+(defun meme-save-or-upload ()
+  "Save the meme or upload it to imgur."
+  (interactive)
+  (if (eq (car (read-multiple-choice
+		"Save or upload?"
+		'((?s "save" "Save the meme in the format of your choice")
+		  (?u "upload" "Upload the meme to imgur"))))
+	  ?s)
+      (call-interactively 'meme-create-image)
+    (let ((svg meme-svg))
+      (with-temp-buffer
+	(set-buffer-multibyte nil)
+	(svg-print svg)
+	(call-process-region (point-min) (point-max) "convert"
+			     t (current-buffer) nil
+			     "svg:-" "png:-")
+	(let ((url (imgur-upload-image (buffer-string) t)))	
+	  (message "Copied '%s' to the kill ring" url)
+	  (with-temp-buffer
+	    (insert (url-encode-url url))
+	    (copy-region-as-kill (point-min) (point-max))))))))
+
 (defun meme-create-image (file)
   "Write the meme in the current buffer to a file."
   (interactive "FFile name to write to: ")
@@ -282,7 +313,8 @@
     (with-temp-buffer
       (svg-print svg)
       (call-process-region (point-min) (point-max) "convert"
-			   nil nil nil "svg:-" file))))
+			   nil nil nil "svg:-"
+			   (file-truename file)))))
 
 (provide 'meme)
 
