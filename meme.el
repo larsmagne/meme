@@ -300,11 +300,13 @@
 	(call-process-region (point-min) (point-max) "convert"
 			     t (list (current-buffer) nil) nil
 			     "svg:-" "png:-")
-	(let ((url (imgur-upload-image (buffer-string) t)))	
-	  (message "Copied '%s' to the kill ring" url)
-	  (with-temp-buffer
-	    (insert (url-encode-url url))
-	    (copy-region-as-kill (point-min) (point-max))))))))
+	(let ((url (imgur-upload-image (buffer-string) t)))
+	  (if (not url)
+	      (message "Upload failed")
+	    (message "Copied '%s' to the kill ring" url)
+	    (with-temp-buffer
+	      (insert (url-encode-url url))
+	      (copy-region-as-kill (point-min) (point-max)))))))))
 
 (defun meme-create-image (file)
   "Write the meme in the current buffer to a file."
