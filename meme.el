@@ -298,7 +298,7 @@
 	(set-buffer-multibyte nil)
 	(svg-print svg)
 	(call-process-region (point-min) (point-max) "convert"
-			     t (current-buffer) nil
+			     t (list (current-buffer) nil) nil
 			     "svg:-" "png:-")
 	(let ((url (imgur-upload-image (buffer-string) t)))	
 	  (message "Copied '%s' to the kill ring" url)
