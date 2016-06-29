@@ -21,6 +21,12 @@
 
 ;;; Commentary:
 
+;; Add the following to your .emacs to be able to use this package:
+
+;; (setq load-path (cons (expand-file-name "~/lisp/meme") load-path))
+;; (autoload 'meme "meme.el")
+;; (autoload 'meme-file "meme.el")
+
 ;;; Code:
 
 (require 'cl)
@@ -41,6 +47,13 @@
   (setq-local meme-column 0)
   (add-hook 'post-command-hook 'meme--fix-point))
 
+(defun meme-file (file)
+  "Create a meme from FILE."
+  (interactive "fImage to memefy: ")
+  (switch-to-buffer (get-buffer-create "*meme*"))
+  (meme-mode)
+  (meme--setup-image file))
+
 (defun meme--fix-point ()
   (let ((column (current-column)))
     (when (get-text-property (point) 'meme-intangible)
@@ -53,7 +66,7 @@
 (defvar meme-mode-map
   (let ((map (make-keymap)))
     (set-keymap-parent map special-mode-map)
-    ;;(define-key map " " 'archive-next-line)
+    (define-key map "\r" 'meme-save-or-upload)
     map))
 
 (define-derived-mode meme-mode special-mode "Meme"
