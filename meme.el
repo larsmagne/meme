@@ -23,9 +23,9 @@
 
 ;; Add the following to your .emacs to be able to use this package:
 
-;; (setq load-path (cons (expand-file-name "~/lisp/meme") load-path))
-;; (autoload 'meme "meme.el")
-;; (autoload 'meme-file "meme.el")
+;; (setq load-path (cons (expand-file-name "~/src/meme") load-path))
+;; (autoload 'meme "meme.el" "Create a meme from a collection" t)
+;; (autoload 'meme-file "meme.el" "Create a meme from a file" t)
 
 ;;; Code:
 
