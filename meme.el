@@ -34,6 +34,9 @@
 (require 'svg)
 (require 'imgur)
 
+(defvar meme-width 400
+  "The width of the meme images that are generated.")
+
 (defvar meme-svg)
 (defvar meme-column)
 (defvar meme-font "impact")
@@ -154,7 +157,7 @@
     (erase-buffer))
   (let* ((image (create-image file 'imagemagick))
 	 (image-size (image-size image t))
-	 (width 400)
+	 (width meme-width)
 	 (height (* (cdr image-size) (/ width (float (car image-size)))))
 	 (svg (svg-create width height
 			  :xmlns:xlink "http://www.w3.org/1999/xlink"))
@@ -245,7 +248,7 @@
 		    ((equal align "right")
 		     390)
 		    (t
-		     (/ 400 2)))
+		     (/ meme-width 2)))
 		:y (+ y-offset (* i font-size))
 		:stroke-width 1
 		:id (format "%s-%d" (plist-get elem :name) i))
@@ -261,7 +264,7 @@
 						     (point))
 				   font-size
 				   family)
-		 370)
+		 (* meme-width 0.9))
 	  (unless (= prev (line-beginning-position))
 	    (goto-char prev))
 	  (delete-char -1)
