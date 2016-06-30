@@ -228,17 +228,20 @@
       ;; black stroke, and then with a totally see-through stroke.
       ;; This should remove strokes-on-top-of-fills on overlapping
       ;; characters.
-      (dolist (type '(("a" 1) ("b" 0)))
+      (dolist (type '(("a" 1 "black")
+		      ;; Disable for now.
+		      ;;("b" 1 "red")
+		      ))
 	(svg-text svg bit
 		  :font-size font-size
 		  :font-weight "bold"
-		  :stroke "black"
+		  :stroke (caddr type)
 		  :fill (meme--value data :color)
 		  :font-family (meme--value data :family)
-		  :letter-spacing (format "-%spt" (* font-size 0.05))
+		  :letter-spacing (format "-%spt" (* font-size 0.07))
 		  :font-stretch 'condensed
 		  :stroke-opacity (cadr type)
-		  :stroke-width 4
+		  :stroke-width 1
 		  :text-anchor (cond
 				((or (equal align "left")
 				     (string-match "^[0-9]+$" align))
