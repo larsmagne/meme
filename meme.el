@@ -197,7 +197,7 @@
       value)))
 
 (defun meme--update-meme (svg height top bottom)
-  (when (or t (buffer-modified-p))
+  (when (buffer-modified-p)
     (let* ((inhibit-read-only t))
       (meme--update-text svg top
 			 (+ (meme--value top :margin t)
@@ -229,7 +229,7 @@
 		:stroke "black"
 		:fill (meme--value data :color)
 		:font-family (meme--value data :family)
-		:letter-spacing (format "-%spt" (* font-size 0.03))
+		:letter-spacing (format "-%spt" (* font-size 0.07))
 		:font-stretch 'condensed
 		:paint-order "stroke"
 		:stroke-width 2
