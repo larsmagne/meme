@@ -221,38 +221,44 @@
 	       (> (length bits) 1))
       (decf y-offset (* font-size (1- (length bits)))))
     (dotimes (i 10)
-      (svg-remove svg (format "%s-%d" (plist-get elem :name) i)))
+      (dolist (version '("a" "b"))
+	(svg-remove svg (format "%s-%d-%s" (plist-get elem :name) i version))))
     (dolist (bit bits)
-      (svg-text svg bit
-		:font-size font-size
-		:font-weight "bold"
-		:stroke "black"
-		:fill (meme--value data :color)
-		:font-family (meme--value data :family)
-		:letter-spacing (format "-%spt" (* font-size 0.07))
-		:font-stretch 'condensed
-		:paint-order "stroke"
-		:stroke-width 2
-		:text-anchor (cond
-			      ((or (equal align "left")
-				   (string-match "^[0-9]+$" align))
-			       "start")
-			      ((equal align "right")
-			       "end")
-			      (t
-			       "middle"))
-		:x (cond
-		    ((or (equal align "left")
-			 (string-match "^[0-9]+$" align))
-		     (if (equal align "left")
-			 10
-		       (string-to-number align)))
-		    ((equal align "right")
-		     390)
-		    (t
-		     (/ meme-width 2)))
-		:y (+ y-offset (* i font-size))
-		:id (format "%s-%d" (plist-get elem :name) i))
+      ;; The idea here is that we render the text twice: First with a
+      ;; black stroke, and then with a totally see-through stroke.
+      ;; This should remove strokes-on-top-of-fills on overlapping
+      ;; characters.
+      (dolist (type '(("a" 1) ("b" 0)))
+	(svg-text svg bit
+		  :font-size font-size
+		  :font-weight "bold"
+		  :stroke "black"
+		  :fill (meme--value data :color)
+		  :font-family (meme--value data :family)
+		  :letter-spacing (format "-%spt" (* font-size 0.05))
+		  :font-stretch 'condensed
+		  :stroke-opacity (cadr type)
+		  :stroke-width 4
+		  :text-anchor (cond
+				((or (equal align "left")
+				     (string-match "^[0-9]+$" align))
+				 "start")
+				((equal align "right")
+				 "end")
+				(t
+				 "middle"))
+		  :x (cond
+		      ((or (equal align "left")
+			   (string-match "^[0-9]+$" align))
+		       (if (equal align "left")
+			   10
+			 (string-to-number align)))
+		      ((equal align "right")
+		       390)
+		      (t
+		       (/ meme-width 2)))
+		  :y (+ y-offset (* i font-size))
+		  :id (format "%s-%d-%s" (plist-get elem :name) i (car type))))
       (incf i))))
 
 (defun meme--fold-string (string font-size family)
