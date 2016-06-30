@@ -1,4 +1,4 @@
-To use this library, you need the Emacs master trunk from at 30th of
+To use this library, you need the Emacs master trunk from the 30th of
 June 2016 or later.  It has to be built with all the normal goodies,
 including ImageMagick support.
 
