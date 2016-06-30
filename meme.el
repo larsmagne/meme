@@ -164,7 +164,9 @@
 	 (inhibit-read-only t)
 	 (top (meme--insert-inputs "top"))
 	 (bottom (meme--insert-inputs "bottom")))
-    (insert (make-string 60 ? ))
+    (insert "\n")
+    (svg-insert-image svg)
+    (insert (make-string 20 ? ))
     (insert-image (create-image
 		   (expand-file-name
 		    "manual.png"
@@ -172,8 +174,6 @@
 		   'imagemagick
 		   nil :max-width 120)
 		  " ")
-    (insert "\n")
-    (svg-insert-image svg)
     (svg-embed svg file "image/jpeg" nil
 	       :width width
 	       :height height)
@@ -197,7 +197,7 @@
       value)))
 
 (defun meme--update-meme (svg height top bottom)
-  (when (buffer-modified-p)
+  (when (or t (buffer-modified-p))
     (let* ((inhibit-read-only t))
       (meme--update-text svg top
 			 (+ (meme--value top :margin t)
@@ -229,8 +229,10 @@
 		:stroke "black"
 		:fill (meme--value data :color)
 		:font-family (meme--value data :family)
-		:letter-spacing (format "-%spt" (* font-size 0.07))
+		:letter-spacing (format "-%spt" (* font-size 0.03))
 		:font-stretch 'condensed
+		:paint-order "stroke"
+		:stroke-width 2
 		:text-anchor (cond
 			      ((or (equal align "left")
 				   (string-match "^[0-9]+$" align))
@@ -250,7 +252,6 @@
 		    (t
 		     (/ meme-width 2)))
 		:y (+ y-offset (* i font-size))
-		:stroke-width 1
 		:id (format "%s-%d" (plist-get elem :name) i))
       (incf i))))
 
@@ -331,9 +332,11 @@
   (let ((svg meme-svg))
     (with-temp-buffer
       (svg-print svg)
-      (call-process-region (point-min) (point-max) "convert"
-			   nil nil nil "svg:-"
-			   (file-truename file)))))
+      (if (string-match "\\.svg\\'" file)
+	  (write-region (point-min) (point-max) file)
+	(call-process-region (point-min) (point-max) "convert"
+			     nil nil nil "svg:-"
+			     (file-truename file))))))
 
 (provide 'meme)
 
