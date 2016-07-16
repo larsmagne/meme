@@ -7,3 +7,9 @@ See
 https://lars.ingebrigtsen.no/2014/11/13/welcome-new-emacs-developers/
 
 for simple instructions on how to do this.
+
+You also need
+
+apt install ttf-mscorefonts-installer
+
+to get the correct fonts.
