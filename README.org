@@ -1,0 +1,46 @@
+* Installation
+** Dependencies
+*** Emacs Version
+To use this library, you need the Emacs master trunk from the 30th of
+June 2016 or later.  It has to be built with all the normal goodies,
+including ImageMagick support.
+
+See [[https://lars.ingebrigtsen.no/2014/11/13/welcome-new-emacs-developers/][Welcome New Emacs Developers]] for simple instructions on how to do
+this.
+
+Alternatively [[https://www.archlinux.org][Arch Users]] can install the latest development branch
+from the [[https://aur.archlinux.org/packages/emacs-git/][AUR]]. This library has been tested with =emacs-git 25.1.50.r126117-1=.
+*** Microsoft True Type Fonts
+You will also need to get the correct fonts,
+**** Ubuntu
+$ apt install ttf-mscorefonts-installer
+**** Arch Linux
+Using an AUR wrapper,
+$ pacaur -S ttf-ms-fonts fontconfig-ttf-ms-fonts
+*** MELPA Repository Packages
+Ensure that the [[][json]] and [[][svg]] libraries are installed. This can be
+accomplished using M-x list-packages
+** Install From Source
+[[https://github.com/larsmagne/meme.el][Meme.el]] is not officially part of MELPA [[][yet]], so the easiest way
+to install it is to clone the repository and add it to your Emacs load
+path,
+
+$ cd /path/to/src
+$ git clone https://github.com/larsmagne/meme.el
+
+* Configuration
+Then in your init.el add the following:
+
+(add-to-list 'load-path "/path/to/src/meme")
+(require 'meme)
+(autoload 'meme "meme.el" "Create a meme from a collection" t)
+(autoload 'meme-file "meme.el" "Create a meme from a file" t)
+
+* Usage
+![screenshot]()
+You can now effectively generate memes within Emacs from
+** Collection of Images
+M-x meme, will allow you choose an image to edit from those
+stored in /path/to/src/meme/images
+** Select an Image File
+M-x meme-file will let you browse to the desired image file.
