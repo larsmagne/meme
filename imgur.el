@@ -25,6 +25,7 @@
 
 (require 'cl)
 (require 'json)
+(require 'mm-url)
 
 (defconst imgur-client-id "f4a2d25e9bd3ed7"
   "This is the imgur client ID for the imgur.el library.
