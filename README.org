@@ -1,6 +1,4 @@
 * Table of Contents                                                     :TOC:
-<<<<<<< 848aeec30c327b7fabf682f5961554a6a73300f2
-=======
  - [[#dependencies][Dependencies]]
    - [[#emacs-version][Emacs Version]]
    - [[#microsoft-true-type-fonts][Microsoft True Type Fonts]]
@@ -10,7 +8,6 @@
  - [[#usage][Usage]]
    - [[#collection-of-images][Collection of Images]]
    - [[#select-an-image-file][Select an Image File]]
->>>>>>> Added Table of contents.
 * Dependencies
 ** Emacs Version
 To use this library, you need the Emacs master trunk from the 30th of
