@@ -39,7 +39,7 @@
 
 (defvar meme-svg)
 (defvar meme-column)
-(defvar meme-font "impact")
+(defvar meme-font "nimbussans")
 
 (defun meme ()
   "Create a meme image interactively in Emacs."
@@ -148,7 +148,7 @@
     (plist-put elem :align (meme--text-input
 			    (format "%s-align" name) 8 "middle"))
     (plist-put elem :family (meme--text-input
-			     (format "%s-family" name) 10 "impact"))
+                 (format "%s-family" name) 10 "nimbussans"))
     (insert "\n")
     elem))
 
