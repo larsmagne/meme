@@ -30,9 +30,6 @@ Using an AUR wrapper,
 #+BEGIN_SRC shell
 $ pacaur -S ttf-ms-fonts fontconfig-ttf-ms-fonts
 #+END_SRC
-** MELPA Repository Packages
-Ensure that the [[http://json.org][json]] and [[http://elpa.gnu.org/packages/svg.html][svg]] libraries are installed /(both of which
-are built-in as of Emacs 25)/. This can be accomplished using =M-x list-packages=
 * Installation From Source
 [[https://github.com/larsmagne/meme.el][Meme.el]] is not officially part of MELPA [[https://lists.gnu.org/archive/html/emacs-devel/2016-06/msg00848.html][yet]], so the easiest way
 to install it is to clone the repository and add it to your Emacs load
