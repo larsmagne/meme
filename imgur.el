@@ -66,6 +66,9 @@ the image.  If not, it should be a file name."
 	(setq json (json-read)))
       (kill-buffer (current-buffer)))
     (let ((url (cdr (assq 'link (car json)))))
+      ;; Apparently the URL returned doesn't quite work for everybody
+      ;; unless we chop off the ending?  Weird.
+      (setq url (replace-regexp-in-string "[.]jpg\\'" "" url))
       (if (not (called-interactively-p 'interactive))
 	  url
 	(message "Copied '%s' to the kill ring" url)
