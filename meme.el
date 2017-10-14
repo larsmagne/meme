@@ -70,6 +70,8 @@
 	 (files (directory-files directory nil match))
 	 (meme-data (meme--setup-image
 		     (expand-file-name (car files) directory))))
+    (setq-local after-change-functions nil)
+    (setq-local post-command-hook nil)
     (goto-char (point-min))
     (forward-line 4)
     (insert "GIF    ")
@@ -96,7 +98,9 @@
       (plist-put elem :mode (meme--text-input "rate" 4 "restart"))
       (plist-put elem :mode (meme--text-input "paused" 2 ""))
       (insert "\n")
-      (meme--animate meme-data elem))))
+      (meme--animate meme-data elem))
+    (add-hook 'after-change-functions #'eww-process-text-input nil t)
+    nil))
 
 (defun meme--fix-point ()
   (let ((column (current-column)))
@@ -221,7 +225,7 @@
     (goto-char (next-single-property-change (point-min) 'eww-form))
     (setq-local meme-svg svg)
     (setq after-change-functions nil)
-    ;;(add-hook 'after-change-functions #'eww-process-text-input nil t)
+    (add-hook 'after-change-functions #'eww-process-text-input nil t)
     (setq-local post-command-hook nil)
     (setq buffer-read-only t)
     (add-hook 'post-command-hook
@@ -407,7 +411,7 @@
 	    (if (eq (plist-get data :direction) 'forward)
 		(progn
 		  (incf (getf data :index) (1+ (meme--value data :skip t)))
-		  (when (> (plist-get data :index) (meme--value data :end t))
+		  (when (>= (plist-get data :index) (meme--value data :end t))
 		    (if (not (equal (meme--value data :mode) "restart"))
 			(setf (getf data :direction) 'backward
 			      (getf data :index) (1- (meme--value data :end t)))
@@ -420,13 +424,12 @@
 	    (meme--update-image meme-data
 				(elt (getf data :files) (getf data :index))
 				(getf data :size))
-	    (when t
-	      (setq giffy-timer
-		    (run-at-time
-		     at-time
-		     nil
-		     (lambda ()
-		       (meme--animate meme-data data)))))))))))
+	    (setq giffy-timer
+		  (run-at-time
+		   at-time
+		   nil
+		   (lambda ()
+		     (meme--animate meme-data data))))))))))
 
 (defun meme--update-image (meme-data base64 size)
   (let* ((width meme-width)
