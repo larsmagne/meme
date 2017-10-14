@@ -66,6 +66,9 @@
   (interactive "DSource directory: \nsMatching files (regexp): ")
   (switch-to-buffer (get-buffer-create "*meme*"))
   (meme-mode)
+  (when giffy-timer
+    (cancel-timer giffy-timer)
+    (setq giffy-timer nil))
   (let* ((inhibit-read-only t)
 	 (files (directory-files directory nil match))
 	 (meme-data (meme--setup-image
@@ -390,8 +393,8 @@
 
 (defun meme--animate (meme-data data)
   (when (buffer-live-p (plist-get data :buffer))
-    (save-excursion
-      (with-current-buffer (plist-get data :buffer)
+    (with-current-buffer (plist-get data :buffer)
+      (save-excursion
 	(let* ((inhibit-read-only t)
 	       (delay (- (float-time) (plist-get data :timestamp)))
 	       (at-time (max 0.001 (- (/ (meme--value data :rate t) 1000.0)
@@ -429,7 +432,8 @@
 		   at-time
 		   nil
 		   (lambda ()
-		     (meme--animate meme-data data))))))))))
+		     (meme--animate meme-data data)))))
+	  (goto-char (point)))))))
 
 (defun meme--update-image (meme-data base64 size)
   (let* ((width meme-width)
