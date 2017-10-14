@@ -27,12 +27,15 @@
 ;; (autoload 'meme "meme.el" "Create a meme from a collection" t)
 ;; (autoload 'meme-file "meme.el" "Create a meme from a file" t)
 
+;; (meme-gif "/var/tmp/screenshots/Witness for the Prosecution/" "comp02")
+
 ;;; Code:
 
 (require 'cl)
 (require 'eww)
 (require 'svg)
 (require 'imgur)
+(require 'giffy)
 
 (defvar meme-width 400
   "The width of the meme images that are generated.")
@@ -57,6 +60,43 @@
   (switch-to-buffer (get-buffer-create "*meme*"))
   (meme-mode)
   (meme--setup-image file))
+
+(defun meme-gif (directory match)
+  "Create a animate meme GIF interactively in Emacs."
+  (interactive "DSource directory: \nsMatching files (regexp): ")
+  (switch-to-buffer (get-buffer-create "*meme*"))
+  (meme-mode)
+  (let* ((inhibit-read-only t)
+	 (files (directory-files directory nil match))
+	 (meme-data (meme--setup-image
+		     (expand-file-name (car files) directory))))
+    (goto-char (point-min))
+    (forward-line 4)
+    (insert "GIF    ")
+    (let ((elem (list :start (meme--text-input "start" 4 "250"))))
+      (plist-put elem :files (mapcar (lambda (f)
+				       (svg--image-data 
+					(expand-file-name f directory)
+					"image/png"
+					nil))
+				     files))
+      (plist-put elem :directory directory)
+      (plist-put elem :size (image-size (create-image
+					 (expand-file-name (car files)
+							   directory))
+					t))
+      (plist-put elem :buffer (current-buffer))
+      (plist-put elem :timestamp (float-time))
+      (plist-put elem :index 250)
+      (plist-put elem :direction 'forward)
+      (plist-put elem :end (meme--text-input "end" 4
+					     (format "%d" (length files))))
+      (plist-put elem :skip (meme--text-input "skip" 4 "0"))
+      (plist-put elem :rate (meme--text-input "rate" 4 "40"))
+      (plist-put elem :mode (meme--text-input "rate" 4 "restart"))
+      (plist-put elem :mode (meme--text-input "paused" 2 ""))
+      (insert "\n")
+      (meme--animate meme-data elem))))
 
 (defun meme--fix-point ()
   (let ((column (current-column)))
@@ -148,7 +188,7 @@
     (plist-put elem :align (meme--text-input
 			    (format "%s-align" name) 8 "middle"))
     (plist-put elem :family (meme--text-input
-                 (format "%s-family" name) 10 "impact"))
+			     (format "%s-family" name) 10 "impact"))
     (insert "\n")
     elem))
 
@@ -181,14 +221,14 @@
     (goto-char (next-single-property-change (point-min) 'eww-form))
     (setq-local meme-svg svg)
     (setq after-change-functions nil)
-    (add-hook 'after-change-functions #'eww-process-text-input nil t)
+    ;;(add-hook 'after-change-functions #'eww-process-text-input nil t)
     (setq-local post-command-hook nil)
     (setq buffer-read-only t)
     (add-hook 'post-command-hook
 	      (lambda ()
 		(meme--update-meme svg height top bottom)))
     (set-buffer-modified-p nil)
-    nil))
+    (list :svg svg :height height :top top :bottom bottom)))
 
 (defun meme--value (elem name &optional number)
   (let ((value (plist-get (plist-get elem name) :value)))
@@ -196,8 +236,9 @@
 	(string-to-number value)
       value)))
 
-(defun meme--update-meme (svg height top bottom)
-  (when (buffer-modified-p)
+(defun meme--update-meme (svg height top bottom &optional force)
+  (when (or force
+	    (buffer-modified-p))
     (let* ((inhibit-read-only t))
       (meme--update-text svg top
 			 (+ (meme--value top :margin t)
@@ -342,6 +383,80 @@
 	(call-process-region (point-min) (point-max) "convert"
 			     nil nil nil "svg:-"
 			     (file-truename file))))))
+
+(defun meme--animate (meme-data data)
+  (when (buffer-live-p (plist-get data :buffer))
+    (save-excursion
+      (with-current-buffer (plist-get data :buffer)
+	(let* ((inhibit-read-only t)
+	       (delay (- (float-time) (plist-get data :timestamp)))
+	       (at-time (max 0.001 (- (/ (meme--value data :rate t) 1000.0)
+				      delay))))
+	  (goto-char (point-min))
+	  (when (re-search-forward "^Length:" nil t)
+	    (delete-region (match-beginning 0)
+			   (progn (forward-line 1) (point))))
+	  (goto-char (point-min))
+	  (forward-line 5)
+	  (insert (format
+		   "Length: %d  Index: %d  Real-Delay: %.5f\n"
+		   (length (plist-get data :files))
+		   (plist-get data :index)
+		   at-time))
+	  (unless (equal (meme--value data :paused) "")
+	    (if (eq (plist-get data :direction) 'forward)
+		(progn
+		  (incf (getf data :index) (1+ (meme--value data :skip t)))
+		  (when (> (plist-get data :index) (meme--value data :end t))
+		    (if (not (equal (meme--value data :mode) "restart"))
+			(setf (getf data :direction) 'backward
+			      (getf data :index) (1- (meme--value data :end t)))
+		      (setf (getf data :index) (meme--value data :start t)))))
+	      (decf (getf data :index) (1+ (meme--value data :skip t)))
+	      (when (<= (plist-get data :index) (meme--value data :start t))
+		(setf (getf data :direction) 'forward
+		      (getf data :index) (1+ (meme--value data :start t)))))
+	    (setf (getf data :timestamp) (float-time))
+	    (meme--update-image meme-data
+				(elt (getf data :files) (getf data :index))
+				(getf data :size))
+	    (when t
+	      (setq giffy-timer
+		    (run-at-time
+		     at-time
+		     nil
+		     (lambda ()
+		       (meme--animate meme-data data)))))))))))
+
+(defun meme--update-image (meme-data base64 size)
+  (let* ((width meme-width)
+	 (height (* (cdr size) (/ width (float (car size)))))
+	 (svg (svg-create width height
+			  :xmlns:xlink "http://www.w3.org/1999/xlink"))
+	 (inhibit-read-only t))
+    (goto-char (point-min))
+    (forward-line 6)
+    (delete-region (point) (point-max))
+    (insert "\n")
+    (meme--update-meme svg
+		       (plist-get meme-data :height)
+		       (plist-get meme-data :top)
+		       (plist-get meme-data :bottom))
+    (let ((image (with-temp-buffer
+		   (svg-print svg)
+		   (goto-char (point-min))
+		   (search-forward "xlink\"> ")
+		   (insert "<image xlink:href=\"")
+		   (insert base64)
+		   (insert (format "\" height=\"%s\" width=\"%s\"></image> "
+				   height
+				   width))
+		   (setq a (buffer-string))
+		   (create-image (buffer-string) 'svg t)))
+	  (marker (point-marker)))
+      (insert-image image)
+      (dom-set-attribute svg :image marker))
+    (set-buffer-modified-p nil)))
 
 (provide 'meme)
 
