@@ -78,7 +78,7 @@
     (goto-char (point-min))
     (forward-line 4)
     (insert "GIF    ")
-    (let ((elem (list :start (meme--text-input "start" 4 "250"))))
+    (let ((elem (list :start (meme--text-input "start" 4 "0"))))
       (plist-put elem :files (mapcar (lambda (f)
 				       (svg--image-data 
 					(expand-file-name f directory)
@@ -92,7 +92,7 @@
 					t))
       (plist-put elem :buffer (current-buffer))
       (plist-put elem :timestamp (float-time))
-      (plist-put elem :index 250)
+      (plist-put elem :index 0)
       (plist-put elem :direction 'forward)
       (plist-put elem :end (meme--text-input "end" 4
 					     (format "%d" (length files))))
@@ -102,6 +102,7 @@
       (plist-put elem :mode (meme--text-input "paused" 2 ""))
       (insert "\n")
       (meme--animate meme-data elem))
+    (eww-size-text-inputs)
     (add-hook 'after-change-functions #'eww-process-text-input nil t)
     nil))
 
