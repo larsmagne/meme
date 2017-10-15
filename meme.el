@@ -41,6 +41,7 @@
   "The width of the meme images that are generated.")
 
 (defvar meme-svg)
+(defvar meme-animation)
 (defvar meme-column)
 (defvar meme-font "impact")
 
@@ -98,10 +99,10 @@
 					     (format "%d" (length files))))
       (plist-put elem :skip (meme--text-input "skip" 4 "0"))
       (plist-put elem :rate (meme--text-input "rate" 4 "40"))
-      (plist-put elem :mode (meme--text-input "rate" 4 "restart"))
-      (plist-put elem :mode (meme--text-input "paused" 2 ""))
+      (plist-put elem :mode (meme--text-input "mode" 8 "restart"))
       (insert "\n")
-      (meme--animate meme-data elem))
+      (meme--animate meme-data elem)
+      (setq-local meme-animation (list meme-data elem)))
     (eww-size-text-inputs)
     (add-hook 'after-change-functions #'eww-process-text-input nil t)
     nil))
@@ -228,6 +229,7 @@
     (eww-size-text-inputs)
     (goto-char (next-single-property-change (point-min) 'eww-form))
     (setq-local meme-svg svg)
+    (setq-local meme-animation nil)
     (setq after-change-functions nil)
     (add-hook 'after-change-functions #'eww-process-text-input nil t)
     (setq-local post-command-hook nil)
@@ -359,12 +361,24 @@
 (defun meme-save-or-upload ()
   "Save the meme or upload it to imgur."
   (interactive)
-  (if (eq (car (read-multiple-choice
-		"Save or upload?"
-		'((?s "save" "Save the meme in the format of your choice")
-		  (?u "upload" "Upload the meme to imgur"))))
-	  ?s)
-      (call-interactively 'meme-create-image)
+  (cond
+   (meme-animation
+    (meme--save-animation
+     (equal
+      (car
+       (read-multiple-choice
+	"GIF or MP4? "
+	'((?g "gif")
+	  (?m "mp4"))))
+      ?m)
+     (read-file-name "Save to file: ")))
+   ((eq (car (read-multiple-choice
+	      "Save or upload?"
+	      '((?s "save" "Save the meme in the format of your choice")
+		(?u "upload" "Upload the meme to imgur"))))
+	?s)
+    (call-interactively 'meme-create-image))
+   (t
     (let ((svg meme-svg))
       (with-temp-buffer
 	(set-buffer-multibyte nil)
@@ -378,7 +392,7 @@
 	    (message "Copied '%s' to the kill ring" url)
 	    (with-temp-buffer
 	      (insert (url-encode-url url))
-	      (copy-region-as-kill (point-min) (point-max)))))))))
+	      (copy-region-as-kill (point-min) (point-max))))))))))
 
 (defun meme-create-image (file)
   "Write the meme in the current buffer to a file."
@@ -411,60 +425,116 @@
 		   (length (plist-get data :files))
 		   (plist-get data :index)
 		   at-time))
-	  (unless (equal (meme--value data :paused) "")
-	    (if (eq (plist-get data :direction) 'forward)
-		(progn
-		  (incf (getf data :index) (1+ (meme--value data :skip t)))
-		  (when (>= (plist-get data :index) (meme--value data :end t))
-		    (if (not (equal (meme--value data :mode) "restart"))
-			(setf (getf data :direction) 'backward
-			      (getf data :index) (1- (meme--value data :end t)))
-		      (setf (getf data :index) (meme--value data :start t)))))
-	      (decf (getf data :index) (1+ (meme--value data :skip t)))
-	      (when (<= (plist-get data :index) (meme--value data :start t))
-		(setf (getf data :direction) 'forward
-		      (getf data :index) (1+ (meme--value data :start t)))))
-	    (setf (getf data :timestamp) (float-time))
-	    (meme--update-image meme-data
-				(elt (getf data :files) (getf data :index))
-				(getf data :size))
-	    (setq giffy-timer
-		  (run-at-time
-		   at-time
-		   nil
-		   (lambda ()
-		     (meme--animate meme-data data)))))
-	  (goto-char (point)))))))
+	  (if (eq (plist-get data :direction) 'forward)
+	      (progn
+		(incf (getf data :index) (1+ (meme--value data :skip t)))
+		(when (>= (plist-get data :index) (meme--value data :end t))
+		  (if (not (equal (meme--value data :mode) "restart"))
+		      (setf (getf data :direction) 'backward
+			    (getf data :index) (1- (meme--value data :end t)))
+		    (setf (getf data :index) (meme--value data :start t)))))
+	    (decf (getf data :index) (1+ (meme--value data :skip t)))
+	    (when (<= (plist-get data :index) (meme--value data :start t))
+	      (setf (getf data :direction) 'forward
+		    (getf data :index) (1+ (meme--value data :start t)))))
+	  (setf (getf data :timestamp) (float-time))
+	  (meme--update-image meme-data
+			      (elt (getf data :files) (getf data :index))
+			      (getf data :size))
+	  (setq giffy-timer
+		(run-at-time
+		 at-time
+		 nil
+		 (lambda ()
+		   (meme--animate meme-data data)))))
+	(goto-char (point))))))
 
 (defun meme--update-image (meme-data base64 size)
-  (let* ((width meme-width)
-	 (height (* (cdr size) (/ width (float (car size)))))
-	 (svg (svg-create width height
-			  :xmlns:xlink "http://www.w3.org/1999/xlink"))
-	 (inhibit-read-only t))
+  (let ((inhibit-read-only t)
+	(image (meme--make-animated-image meme-data base64 size)))
     (goto-char (point-min))
     (forward-line 6)
     (delete-region (point) (point-max))
     (insert "\n")
+    (insert-image (create-image image 'svg t))
+    (set-buffer-modified-p nil)))
+
+(defun meme--make-animated-image (meme-data base64 size)
+  (let* ((width meme-width)
+	 (height (* (cdr size) (/ width (float (car size)))))
+	 (svg (svg-create width height
+			  :xmlns:xlink "http://www.w3.org/1999/xlink")))
     (meme--update-meme svg
 		       (plist-get meme-data :height)
 		       (plist-get meme-data :top)
-		       (plist-get meme-data :bottom))
-    (let ((image (with-temp-buffer
-		   (svg-print svg)
-		   (goto-char (point-min))
-		   (search-forward "xlink\"> ")
-		   (insert "<image xlink:href=\"")
-		   (insert base64)
-		   (insert (format "\" height=\"%s\" width=\"%s\"></image> "
-				   height
-				   width))
-		   (setq a (buffer-string))
-		   (create-image (buffer-string) 'svg t)))
-	  (marker (point-marker)))
-      (insert-image image)
-      (dom-set-attribute svg :image marker))
-    (set-buffer-modified-p nil)))
+		       (plist-get meme-data :bottom)
+		       t)
+    (with-temp-buffer
+      (svg-print svg)
+      (goto-char (point-min))
+      (setq a (list (current-buffer) (buffer-string)))
+      (search-forward "/xlink\">")
+      (insert "<image xlink:href=\"")
+      (insert base64)
+      (insert (format "\" height=\"%s\" width=\"%s\"></image> "
+		      height
+		      width))
+      (buffer-string))))
+
+(defun meme--save-animation (make-mp4 file)
+  (let* ((files-name (make-temp-file "giffy"))
+	 (temp-files (list files-name))
+	 (meme-data (car meme-animation))
+	 (data (cadr meme-animation)))
+    (with-temp-buffer
+      (loop for index from (meme--value data :start t) upto
+	    (meme--value data :end t) by (1+ (meme--value data :skip t))
+	    do (push (meme--write-animated-image meme-data data index)
+		     temp-files))
+      (unless (equal (meme--value data :mode) "restart")
+	(loop for index from (1- (meme--value data :end t))
+	      downto (1+ (meme--value data :start t))
+	      by (1+ (meme--value data :skip t))
+	      do (push (meme--write-animated-image meme-data data index)
+		       temp-files)))
+      (when make-mp4
+	(goto-char (point-min))
+	(while (search-forward "'" nil t)
+	  (replace-match "" "" "")))
+      (write-region (point-min) (point-max) files-name nil 'silent))
+    (if make-mp4
+	(call-process "ffmpeg" files-name (get-buffer-create "*convert*") nil
+		      "-r" "60"
+		      "-f" "image2"
+		      "-s" "1920x1080"
+		      "-i" "-"
+		      "-vcodec" "libx264"
+		      "-crf" "25"
+		      "-pix_fmt" "yuv420p"
+		      (format "%s.mp4" file))
+      (call-process "convert" nil (get-buffer-create "*convert*") nil
+		    "-dispose" "none"
+		    ;; Our delay is in ms, but "convert"s is in 100ths
+		    ;; of a second.
+		    "-delay" (format "%d" (/ (meme--value data :rate t) 10))
+		    (format "@%s" files-name)
+		    "-coalesce"
+		    "-loop" "0"
+		    (format "%s.gif" file)))
+    (mapc #'delete-file temp-files)
+    (message "%s.gif created" file)))
+
+(defun meme--write-animated-image (meme-data data index)
+  (let ((file (make-temp-file "meme-anim" nil ".png")))
+    (insert (format "'%s'\n" file))
+    (with-temp-buffer
+      (insert (meme--make-animated-image
+	       meme-data (elt (getf data :files) index)
+	       (getf data :size)))
+      (call-process-region (point-min) (point-max) "convert"
+			   nil nil nil "svg:-"
+			   file))
+    file))
 
 (provide 'meme)
 
