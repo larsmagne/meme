@@ -484,30 +484,30 @@
 (defun meme--save-animation (make-mp4 file)
   (let* ((files-name (make-temp-file "giffy"))
 	 (temp-files (list files-name))
+	 (prefix (concat (file-name-nondirectory files-name) "-"))
 	 (meme-data (car meme-animation))
+	 (findex 0)
 	 (data (cadr meme-animation)))
     (with-temp-buffer
       (loop for index from (meme--value data :start t) upto
 	    (meme--value data :end t) by (1+ (meme--value data :skip t))
-	    do (push (meme--write-animated-image meme-data data index)
+	    do (push (meme--write-animated-image prefix (incf findex)
+						 meme-data data index)
 		     temp-files))
       (unless (equal (meme--value data :mode) "restart")
 	(loop for index from (1- (meme--value data :end t))
 	      downto (1+ (meme--value data :start t))
 	      by (1+ (meme--value data :skip t))
-	      do (push (meme--write-animated-image meme-data data index)
+	      do (push (meme--write-animated-image prefix (incf findex)
+						   meme-data data index)
 		       temp-files)))
-      (when make-mp4
-	(goto-char (point-min))
-	(while (search-forward "'" nil t)
-	  (replace-match "" "" "")))
       (write-region (point-min) (point-max) files-name nil 'silent))
     (if make-mp4
 	(call-process "ffmpeg" files-name (get-buffer-create "*convert*") nil
 		      "-r" "60"
 		      "-f" "image2"
 		      "-s" "1920x1080"
-		      "-i" "-"
+		      "-i" (concat "/tmp/" prefix "%04d.png")
 		      "-vcodec" "libx264"
 		      "-crf" "25"
 		      "-pix_fmt" "yuv420p"
@@ -524,8 +524,8 @@
     (mapc #'delete-file temp-files)
     (message "%s.gif created" file)))
 
-(defun meme--write-animated-image (meme-data data index)
-  (let ((file (make-temp-file "meme-anim" nil ".png")))
+(defun meme--write-animated-image (prefix findex meme-data data index)
+  (let ((file (format "/tmp/%s%04d.png" prefix findex)))
     (insert (format "'%s'\n" file))
     (with-temp-buffer
       (insert (meme--make-animated-image
