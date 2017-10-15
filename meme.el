@@ -35,7 +35,6 @@
 (require 'eww)
 (require 'svg)
 (require 'imgur)
-(require 'giffy)
 
 (defvar meme-width 400
   "The width of the meme images that are generated.")
@@ -44,6 +43,7 @@
 (defvar meme-animation)
 (defvar meme-column)
 (defvar meme-font "impact")
+(defvar meme--timer nil)
 
 (defun meme ()
   "Create a meme image interactively in Emacs."
@@ -67,9 +67,9 @@
   (interactive "DSource directory: \nsMatching files (regexp): ")
   (switch-to-buffer (get-buffer-create "*meme*"))
   (meme-mode)
-  (when giffy-timer
-    (cancel-timer giffy-timer)
-    (setq giffy-timer nil))
+  (when meme--timer
+    (cancel-timer meme--timer)
+    (setq meme--timer nil))
   (let* ((inhibit-read-only t)
 	 (files (directory-files directory nil match))
 	 (meme-data (meme--setup-image
@@ -441,7 +441,7 @@
 	  (meme--update-image meme-data
 			      (elt (getf data :files) (getf data :index))
 			      (getf data :size))
-	  (setq giffy-timer
+	  (setq meme--timer
 		(run-at-time
 		 at-time
 		 nil
