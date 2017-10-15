@@ -367,7 +367,7 @@
      (equal
       (car
        (read-multiple-choice
-	"GIF or MP4? "
+	"GIF or MP4?"
 	'((?g "gif")
 	  (?m "mp4"))))
       ?m)
@@ -503,6 +503,11 @@
 		       temp-files)))
       (write-region (point-min) (point-max) files-name nil 'silent))
     (if make-mp4
+	(setq file (format "%s.mp4" file))
+      (setq file (format "%s.gif" file)))
+    (when (file-exists-p file)
+      (delete-file file))
+    (if make-mp4
 	(call-process "ffmpeg" files-name (get-buffer-create "*convert*") nil
 		      "-r" "60"
 		      "-f" "image2"
@@ -510,8 +515,7 @@
 		      "-i" (concat "/tmp/" prefix "%04d.png")
 		      "-vcodec" "libx264"
 		      "-crf" "25"
-		      "-pix_fmt" "yuv420p"
-		      (format "%s.mp4" file))
+		      "-pix_fmt" "yuv420p" file)
       (call-process "convert" nil (get-buffer-create "*convert*") nil
 		    "-dispose" "none"
 		    ;; Our delay is in ms, but "convert"s is in 100ths
@@ -519,10 +523,9 @@
 		    "-delay" (format "%d" (/ (meme--value data :rate t) 10))
 		    (format "@%s" files-name)
 		    "-coalesce"
-		    "-loop" "0"
-		    (format "%s.gif" file)))
+		    "-loop" "0" file))
     (mapc #'delete-file temp-files)
-    (message "%s.gif created" file)))
+    (message "%s created" file)))
 
 (defun meme--write-animated-image (prefix findex meme-data data index)
   (let ((file (format "/tmp/%s%04d.png" prefix findex)))
