@@ -36,7 +36,7 @@
 (require 'svg)
 (require 'imgur)
 
-(defvar meme-width 400
+(defvar meme-width 600
   "The width of the meme images that are generated.")
 
 (defvar meme-svg)
@@ -223,9 +223,13 @@
 		   'imagemagick
 		   nil :max-width 120)
 		  " ")
-    (svg-embed svg file "image/jpeg" nil
+    (svg-embed svg file
+	       (if (string-match "png$" file)
+		   "image/png"
+		 "image/jpeg")
+	       nil
 	       :width width
-	       :height height)
+	       :height (round height))
     (eww-size-text-inputs)
     (goto-char (next-single-property-change (point-min) 'eww-form))
     (setq-local meme-svg svg)
@@ -490,12 +494,12 @@
 	 (data (cadr meme-animation)))
     (with-temp-buffer
       (loop for index from (meme--value data :start t) upto
-	    (meme--value data :end t) by (1+ (meme--value data :skip t))
+	    (1- (meme--value data :end t)) by (1+ (meme--value data :skip t))
 	    do (push (meme--write-animated-image prefix (incf findex)
 						 meme-data data index)
 		     temp-files))
       (unless (equal (meme--value data :mode) "restart")
-	(loop for index from (1- (meme--value data :end t))
+	(loop for index from (- (meme--value data :end t) 2)
 	      downto (1+ (meme--value data :start t))
 	      by (1+ (meme--value data :skip t))
 	      do (push (meme--write-animated-image prefix (incf findex)
@@ -515,7 +519,8 @@
 		      "-i" (concat "/tmp/" prefix "%04d.png")
 		      "-vcodec" "libx264"
 		      "-crf" "25"
-		      "-pix_fmt" "yuv420p" file)
+		      "-pix_fmt" "yuv420p"
+		      (expand-file-name file))
       (call-process "convert" nil (get-buffer-create "*convert*") nil
 		    "-dispose" "none"
 		    ;; Our delay is in ms, but "convert"s is in 100ths
@@ -523,7 +528,8 @@
 		    "-delay" (format "%d" (/ (meme--value data :rate t) 10))
 		    (format "@%s" files-name)
 		    "-coalesce"
-		    "-loop" "0" file))
+		    "-loop" "0"
+		    (expand-file-name file)))
     (mapc #'delete-file temp-files)
     (message "%s created" file)))
 
