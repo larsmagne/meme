@@ -83,7 +83,7 @@
       (plist-put elem :files (mapcar (lambda (f)
 				       (svg--image-data 
 					(expand-file-name f directory)
-					"image/png"
+					"image/jpeg"
 					nil))
 				     files))
       (plist-put elem :directory directory)
