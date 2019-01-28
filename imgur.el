@@ -31,12 +31,14 @@
   "This is the imgur client ID for the imgur.el library.
 It can only be used for anonymous uploads.")
 
-(defun imgur-upload-image (image &optional datap)
+(defun imgur-upload-image (image &optional datap kill)
   "Upload IMAGE to imgur and return the resulting imgur URL.
 If called interactively, copy the resulting URL to the kill ring.
 
 If DATAP in non-nil, IMAGE should be a binary string containing
-the image.  If not, it should be a file name."
+the image.  If not, it should be a file name.
+
+If KILL, copy the resulting url to the kill ring."
   (interactive "fImage to upload to imgur: ")
   (let* ((image (if datap
 		    image
@@ -68,13 +70,38 @@ the image.  If not, it should be a file name."
     (let ((url (cdr (assq 'link (car json)))))
       ;; Apparently the URL returned doesn't quite work for everybody
       ;; unless we chop off the ending?  Weird.
-      (setq url (replace-regexp-in-string "[.]jpg\\'" "" url))
-      (if (not (called-interactively-p 'interactive))
-	  url
+      (setq url (replace-regexp-in-string "[.]\\(jpg\\|png\\)\\'" "" url))
+      (when (or (called-interactively-p 'interactive)
+		kill)
 	(message "Copied '%s' to the kill ring" url)
 	(with-temp-buffer
 	  (insert (url-encode-url url))
-	  (copy-region-as-kill (point-min) (point-max)))))))
+	  (copy-region-as-kill (point-min) (point-max))))
+      url)))
+
+(defun imgur-screenshot (delay)
+  "Take a screenshot and upload to imgur.
+DELAY (the numeric prefix) says how many seconds to wait before
+starting the screenshotting process."
+  (interactive "p")
+  (unless (executable-find "import")
+    (error "Can't find the ImageMagick import command on this system"))
+  (decf delay)
+  (unless (zerop delay)
+    (dotimes (i delay)
+      (message "Sleeping %d second%s..."
+	       (- delay i)
+	       (if (= (- delay i) 1)
+		   ""
+		 "s"))
+      (sleep-for 1)))
+  (message "Take screenshot")
+  (imgur-upload-image
+   (with-temp-buffer
+     (set-buffer-multibyte nil)
+     (call-process "import" nil (current-buffer) nil "png:-")
+     (buffer-string))
+   t t))
 
 (provide 'imgur)
 
