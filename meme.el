@@ -156,7 +156,7 @@
 	(insert (propertize " " 'display
 			    `(space :align-to (,(* (mod i width) pixels)))
 			    'meme-intangible t)))
-      (setq image (create-image file 'imagemagick nil
+      (setq image (create-image file (meme--image-type) nil
 				:max-width pixels
 				:max-height pixels))
       (setq image-width (car (image-size image t)))
@@ -204,7 +204,7 @@
 (defun meme--setup-image (file)
   (let ((inhibit-read-only t))
     (erase-buffer))
-  (let* ((image (create-image file 'imagemagick))
+  (let* ((image (create-image file (meme--image-type)))
 	 (image-size (image-size image t))
 	 (width meme-width)
 	 (height (* (cdr image-size) (/ width (float (car image-size)))))
@@ -220,7 +220,7 @@
 		   (expand-file-name
 		    "manual.png"
 		    (file-name-directory (locate-library "meme")))
-		   'imagemagick
+		   (meme--image-type)
 		   nil :max-width 120)
 		  " ")
     (svg-embed svg file
@@ -544,6 +544,13 @@
 			   nil nil nil "svg:-"
 			   file))
     file))
+
+(defun meme--image-type ()
+  (if (or (and (fboundp 'image-transforms-p)
+	       (image-transforms-p))
+	  (not (fboundp 'imagemagick-types)))
+      nil
+    'imagemagick))
 
 (provide 'meme)
 
