@@ -36,10 +36,10 @@
 (require 'svg)
 (require 'imgur)
 
-(defvar meme-width 600
+(defvar meme-width 800
   "The width of the meme images that are generated.")
 
-(defvar meme-mp4-output-width 1280
+(defvar meme-mp4-output-width 800
   "Resulting width of mp4 files.")
 
 (defvar meme-svg)
