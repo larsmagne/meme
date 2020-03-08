@@ -39,6 +39,9 @@
 (defvar meme-width 600
   "The width of the meme images that are generated.")
 
+(defvar meme-mp4-output-width 1280
+  "Resulting width of mp4 files.")
+
 (defvar meme-svg)
 (defvar meme-animation)
 (defvar meme-column)
@@ -463,8 +466,8 @@
     (insert-image (create-image image 'svg t))
     (set-buffer-modified-p nil)))
 
-(defun meme--make-animated-image (meme-data base64 size)
-  (let* ((width meme-width)
+(defun meme--make-animated-image (meme-data base64 size &optional width)
+  (let* ((width (or width meme-width))
 	 (height (* (cdr size) (/ width (float (car size)))))
 	 (svg (svg-create width height
 			  :xmlns:xlink "http://www.w3.org/1999/xlink")))
@@ -495,8 +498,10 @@
     (with-temp-buffer
       (loop for index from (meme--value data :start t) upto
 	    (1- (meme--value data :end t)) by (1+ (meme--value data :skip t))
-	    do (push (meme--write-animated-image prefix (incf findex)
-						 meme-data data index)
+	    do (push (meme--write-animated-image
+		      prefix (incf findex)
+		      meme-data data index
+		      (and make-mp4 meme-mp4-output-width))
 		     temp-files))
       (unless (equal (meme--value data :mode) "restart")
 	(loop for index from (- (meme--value data :end t) 2)
@@ -533,13 +538,15 @@
     (mapc #'delete-file temp-files)
     (message "%s created" file)))
 
-(defun meme--write-animated-image (prefix findex meme-data data index)
+(defun meme--write-animated-image (prefix findex meme-data data index
+					  width)
   (let ((file (format "/tmp/%s%04d.png" prefix findex)))
     (insert (format "'%s'\n" file))
     (with-temp-buffer
       (insert (meme--make-animated-image
 	       meme-data (elt (getf data :files) index)
-	       (getf data :size)))
+	       (getf data :size)
+	       width))
       (call-process-region (point-min) (point-max) "convert"
 			   nil nil nil "svg:-"
 			   file))
