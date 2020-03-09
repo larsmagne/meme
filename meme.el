@@ -84,15 +84,18 @@
     (insert "GIF    ")
     (let ((elem (list :start (meme--text-input "start" 4 "0"))))
       (plist-put elem :files (mapcar (lambda (f)
-				       (svg--image-data 
+				       (meme--image-data 
 					(expand-file-name f directory)
-					"image/jpeg"
-					nil))
+					"image/jpeg"))
 				     files))
       (plist-put elem :directory directory)
       (plist-put elem :size (image-size (create-image
-					 (expand-file-name (car files)
-							   directory))
+					 (with-temp-buffer
+					   (meme--insert-and-trim
+					    (expand-file-name (car files)
+							      directory))
+					   (buffer-string))
+					 nil t)
 					t))
       (plist-put elem :buffer (current-buffer))
       (plist-put elem :timestamp (float-time))
@@ -109,6 +112,21 @@
     (eww-size-text-inputs)
     (add-hook 'after-change-functions #'eww-process-text-input nil t)
     nil))
+
+(defun meme--insert-and-trim (file)
+  (set-buffer-multibyte nil)
+  (insert-file-contents file)
+  (call-process-region (point-min) (point-max) "convert" t (current-buffer)
+		       nil "-trim" "-fuzz" "4%"
+		       "jpg:-" "jpg:-"))
+
+(defun meme--image-data (image image-type)
+  (with-temp-buffer
+    (meme--insert-and-trim image)
+    (base64-encode-region (point-min) (point-max) t)
+    (goto-char (point-min))
+    (insert "data:" image-type ";base64,")
+    (buffer-string)))
 
 (defun meme--fix-point ()
   (let ((column (current-column)))
