@@ -212,7 +212,7 @@
     (plist-put elem :margin (meme--text-input
 			     (format "%s-margin" name) 4 "20"))
     (plist-put elem :size (meme--text-input
-			   (format "%s-size" name) 4 "40"))
+			   (format "%s-size" name) 4 "60"))
     (plist-put elem :color (meme--text-input
 			    (format "%s-color" name) 8 "white"))
     (plist-put elem :align (meme--text-input
@@ -229,6 +229,7 @@
 	 (image-size (image-size image t))
 	 (width meme-width)
 	 (height (* (cdr image-size) (/ width (float (car image-size)))))
+	 (image-scaling-factor 1)
 	 (svg (svg-create width height))
 	 (inhibit-read-only t)
 	 (top (meme--insert-inputs "top"))
@@ -273,7 +274,8 @@
 (defun meme--update-meme (svg height top bottom &optional force)
   (when (or force
 	    (buffer-modified-p))
-    (let* ((inhibit-read-only t))
+    (let* ((inhibit-read-only t)
+	   (image-scaling-factor 1))
       (meme--update-text svg top
 			 (+ (meme--value top :margin t)
 			    (meme--value top :size t)
@@ -303,14 +305,13 @@
       ;; black stroke, and then with a totally see-through stroke.
       ;; This should remove strokes-on-top-of-fills on overlapping
       ;; characters.
-      (dolist (type '(("a" 4) ("b" 1)))
+      (dolist (type '(("a" 8 1) ("b" 8 0)))
 	(svg-text svg bit
 		  :font-size font-size
-		  :font-weight "bold"
 		  :stroke "black"
+		  :stroke-opacity (nth 2 type)
 		  :fill (meme--value data :color)
 		  :font-family (meme--value data :family)
-		  :letter-spacing (format "-%spt" (* font-size 0.07))
 		  :font-stretch 'condensed
 		  :stroke-width (cadr type)
 		  :text-anchor (cond
