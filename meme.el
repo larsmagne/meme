@@ -229,8 +229,7 @@
 	 (image-size (image-size image t))
 	 (width meme-width)
 	 (height (* (cdr image-size) (/ width (float (car image-size)))))
-	 (svg (svg-create width height
-			  :xmlns:xlink "http://www.w3.org/1999/xlink"))
+	 (svg (svg-create width height))
 	 (inhibit-read-only t)
 	 (top (meme--insert-inputs "top"))
 	 (bottom (meme--insert-inputs "bottom")))
@@ -487,8 +486,7 @@
 (defun meme--make-animated-image (meme-data base64 size &optional width)
   (let* ((width (or width meme-width))
 	 (height (* (cdr size) (/ width (float (car size)))))
-	 (svg (svg-create width height
-			  :xmlns:xlink "http://www.w3.org/1999/xlink")))
+	 (svg (svg-create width height)))
     (meme--update-meme svg
 		       (plist-get meme-data :height)
 		       (plist-get meme-data :top)
