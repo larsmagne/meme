@@ -230,7 +230,8 @@
 	 (width meme-width)
 	 (height (* (cdr image-size) (/ width (float (car image-size)))))
 	 (image-scaling-factor 1)
-	 (svg (svg-create width height))
+	 (svg (svg-create width height
+			  :xmlns:xlink "http://www.w3.org/1999/xlink"))
 	 (inhibit-read-only t)
 	 (top (meme--insert-inputs "top"))
 	 (bottom (meme--insert-inputs "bottom")))
