@@ -525,8 +525,10 @@
 	(loop for index from (- (meme--value data :end t) 2)
 	      downto (1+ (meme--value data :start t))
 	      by (1+ (meme--value data :skip t))
-	      do (push (meme--write-animated-image prefix (incf findex)
-						   meme-data data index)
+	      do (push (meme--write-animated-image
+			prefix (incf findex)
+			meme-data data index
+			(and make-mp4 meme-mp4-output-width))
 		       temp-files)))
       (write-region (point-min) (point-max) files-name nil 'silent))
     (if make-mp4
