@@ -118,7 +118,7 @@
   (insert-file-contents file)
   (call-process-region (point-min) (point-max) "convert" t (current-buffer)
 		       nil "-trim" "-fuzz" "4%"
-		       "jpg:-" "jpg:-"))
+		       "jpg:-" "jpg:-")))
 
 (defun meme--image-data (image image-type)
   (with-temp-buffer
@@ -538,12 +538,13 @@
       (delete-file file))
     (if make-mp4
 	(call-process "ffmpeg" files-name (get-buffer-create "*convert*") nil
-		      "-r" "60"
+		      "-r" "24"
 		      "-f" "image2"
 		      "-s" "1920x1080"
 		      "-i" (concat "/tmp/" prefix "%04d.png")
 		      "-vcodec" "libx264"
 		      "-crf" "25"
+		      "-vf" "pad=ceil(iw/2)*2:ceil(ih/2)*2"
 		      "-pix_fmt" "yuv420p"
 		      (expand-file-name file))
       (call-process "convert" nil (get-buffer-create "*convert*") nil
