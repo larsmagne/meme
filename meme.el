@@ -118,7 +118,7 @@
   (insert-file-contents file)
   (call-process-region (point-min) (point-max) "convert" t (current-buffer)
 		       nil "-trim" "-fuzz" "4%"
-		       "jpg:-" "jpg:-")))
+		       "jpg:-" "jpg:-"))
 
 (defun meme--image-data (image image-type)
   (with-temp-buffer
