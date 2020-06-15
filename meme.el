@@ -116,6 +116,7 @@
 (defun meme--insert-and-trim (file)
   (set-buffer-multibyte nil)
   (insert-file-contents file)
+  (sleep-for 0.01)
   (call-process-region (point-min) (point-max) "convert" t (current-buffer)
 		       nil "-trim" "-fuzz" "4%"
 		       "jpg:-" "jpg:-"))
@@ -568,6 +569,7 @@
 	       meme-data (elt (getf data :files) index)
 	       (getf data :size)
 	       width))
+      (sleep-for 0.01)
       (call-process-region (point-min) (point-max) "convert"
 			   nil nil nil "svg:-"
 			   file))
