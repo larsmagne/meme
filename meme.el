@@ -88,6 +88,9 @@
 					(expand-file-name f directory)
 					"image/jpeg"))
 				     files))
+      (plist-put elem :file-names (mapcar (lambda (f)
+					    (expand-file-name f directory))
+					  files))
       (plist-put elem :directory directory)
       (plist-put elem :size (image-size (create-image
 					 (with-temp-buffer
@@ -104,7 +107,7 @@
       (plist-put elem :end (meme--text-input "end" 4
 					     (format "%d" (length files))))
       (plist-put elem :skip (meme--text-input "skip" 4 "0"))
-      (plist-put elem :rate (meme--text-input "rate" 4 "40"))
+      (plist-put elem :rate (meme--text-input "rate" 4 "25"))
       (plist-put elem :mode (meme--text-input "mode" 8 "restart"))
       (insert "\n")
       (meme--animate meme-data elem)
@@ -119,7 +122,8 @@
   (sleep-for 0.01)
   (call-process-region (point-min) (point-max) "convert" t (current-buffer)
 		       nil "-trim" "-fuzz" "4%"
-		       "jpg:-" "jpg:-"))
+		       "jpg:-" "jpg:-")
+  )
 
 (defun meme--image-data (image image-type)
   (with-temp-buffer
@@ -439,7 +443,7 @@
       (save-excursion
 	(let* ((inhibit-read-only t)
 	       (delay (- (float-time) (plist-get data :timestamp)))
-	       (at-time (max 0.001 (- (/ (meme--value data :rate t) 1000.0)
+	       (at-time (max 0.001 (- (/ 1.0 (max (meme--value data :rate t) 1))
 				      delay))))
 	  (goto-char (point-min))
 	  (when (re-search-forward "^Length:" nil t)
@@ -539,7 +543,7 @@
       (delete-file file))
     (if make-mp4
 	(call-process "ffmpeg" files-name (get-buffer-create "*convert*") nil
-		      "-r" "24"
+		      "-r" (meme--value data :rate)
 		      "-f" "image2"
 		      "-s" "1920x1080"
 		      "-i" (concat "/tmp/" prefix "%04d.png")
@@ -550,9 +554,11 @@
 		      (expand-file-name file))
       (call-process "convert" nil (get-buffer-create "*convert*") nil
 		    "-dispose" "none"
-		    ;; Our delay is in ms, but "convert"s is in 100ths
-		    ;; of a second.
-		    "-delay" (format "%d" (/ (meme--value data :rate t) 10))
+		    ;; Our delay is in frames per second, but
+		    ;; "convert"s is in 100ths of a second.
+		    "-delay"
+		    (format "%d" (* (/ 1.0 (max (meme--value data :rate t) 1)
+				       100)))
 		    (format "@%s" files-name)
 		    "-coalesce"
 		    "-loop" "0"
@@ -564,15 +570,19 @@
 					  width)
   (let ((file (format "/tmp/%s%04d.png" prefix findex)))
     (insert (format "'%s'\n" file))
-    (with-temp-buffer
-      (insert (meme--make-animated-image
-	       meme-data (elt (getf data :files) index)
-	       (getf data :size)
-	       width))
-      (sleep-for 0.01)
-      (call-process-region (point-min) (point-max) "convert"
-			   nil nil nil "svg:-"
-			   file))
+    (if (and (zerop (length (meme--value (plist-get meme-data :top) :text)))
+	     (zerop (length (meme--value (plist-get meme-data :bottom) :text))))
+	(call-process "convert" nil nil nil
+		      (elt (getf data :file-names) index) file)
+      (with-temp-buffer
+	(insert (meme--make-animated-image
+		 meme-data (elt (getf data :files) index)
+		 (getf data :size)
+		 width))
+	(sleep-for 0.01)
+	(call-process-region (point-min) (point-max) "convert"
+			     nil nil nil "svg:-"
+			     file)))
     file))
 
 (defun meme--image-type ()
