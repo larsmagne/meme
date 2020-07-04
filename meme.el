@@ -570,6 +570,7 @@
 					  width)
   (let ((file (format "/tmp/%s%04d.png" prefix findex)))
     (insert (format "'%s'\n" file))
+    (sleep-for 0.01)
     (if (and (zerop (length (meme--value (plist-get meme-data :top) :text)))
 	     (zerop (length (meme--value (plist-get meme-data :bottom) :text))))
 	(call-process "convert" nil nil nil
@@ -579,7 +580,6 @@
 		 meme-data (elt (getf data :files) index)
 		 (getf data :size)
 		 width))
-	(sleep-for 0.01)
 	(call-process-region (point-min) (point-max) "convert"
 			     nil nil nil "svg:-"
 			     file)))
