@@ -122,8 +122,7 @@
   (sleep-for 0.01)
   (call-process-region (point-min) (point-max) "convert" t (current-buffer)
 		       nil "-trim" "-fuzz" "4%"
-		       "jpg:-" "jpg:-")
-  )
+		       "jpg:-" "jpg:-"))
 
 (defun meme--image-data (image image-type)
   (with-temp-buffer
@@ -311,7 +310,7 @@
       ;; black stroke, and then with a totally see-through stroke.
       ;; This should remove strokes-on-top-of-fills on overlapping
       ;; characters.
-      (dolist (type '(("a" 8 1) ("b" 8 0)))
+      (dolist (type '(("a" 8 1) ("b" 1 0)))
 	(svg-text svg bit
 		  :font-size font-size
 		  :stroke "black"
