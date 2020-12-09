@@ -19,6 +19,12 @@ this.
 
 Alternatively [[https://www.archlinux.org][Arch Users]] can install the latest development branch
 from the [[https://aur.archlinux.org/packages/emacs-git/][AUR]]. This library has been tested with =emacs-git 25.1.50.r126117-1=.
+
+** imgur.el library
+
+Meme.el depends on [[https://github.com/larsmagne/imgur.el][imgur.el]]. Download it and put it in your
+~load-path~.
+
 ** Microsoft True Type Fonts
 You will also need to get the correct fonts,
 *** Ubuntu
@@ -31,7 +37,7 @@ Using an AUR wrapper,
 $ pacaur -S ttf-ms-fonts fontconfig-ttf-ms-fonts
 #+END_SRC
 * Installation From Source
-[[https://github.com/larsmagne/meme.el][Meme.el]] is not officially part of MELPA [[https://lists.gnu.org/archive/html/emacs-devel/2016-06/msg00848.html][yet]], so the easiest way
+[[https://github.com/larsmagne/meme][Meme.el]] is not officially part of MELPA [[https://lists.gnu.org/archive/html/emacs-devel/2016-06/msg00848.html][yet]], so the easiest way
 to install it is to clone the repository and add it to your Emacs load
 path,
 #+BEGIN_SRC shell
