@@ -31,7 +31,7 @@
 
 ;;; Code:
 
-(require 'cl)
+(require 'cl-lib)
 (require 'eww)
 (require 'svg)
 (require 'imgur)
@@ -189,7 +189,7 @@
       (add-text-properties (1- (point)) (point)
 			   (list 'keymap meme--select-map
 				 'file file))
-      (when (zerop (mod (incf i) width))
+      (when (zerop (mod (cl-incf i) width))
 	(insert "\n")))
     (goto-char (point-min))))
 
@@ -339,7 +339,7 @@
 		       (/ meme-width 2)))
 		  :y (+ y-offset (* i font-size))
 		  :id (format "%s-%d-%s" (plist-get elem :name) i (car type))))
-      (incf i))))
+      (cl-incf i))))
 
 (defun meme--fold-string (string font-size family)
   (with-temp-buffer
@@ -457,20 +457,20 @@
 		   at-time))
 	  (if (eq (plist-get data :direction) 'forward)
 	      (progn
-		(incf (getf data :index) (1+ (meme--value data :skip t)))
+		(cl-incf (cl-getf data :index) (1+ (meme--value data :skip t)))
 		(when (>= (plist-get data :index) (meme--value data :end t))
 		  (if (not (equal (meme--value data :mode) "restart"))
-		      (setf (getf data :direction) 'backward
-			    (getf data :index) (1- (meme--value data :end t)))
-		    (setf (getf data :index) (meme--value data :start t)))))
-	    (decf (getf data :index) (1+ (meme--value data :skip t)))
+		      (setf (cl-getf data :direction) 'backward
+			    (cl-getf data :index) (1- (meme--value data :end t)))
+		    (setf (cl-getf data :index) (meme--value data :start t)))))
+	    (decf (cl-getf data :index) (1+ (meme--value data :skip t)))
 	    (when (<= (plist-get data :index) (meme--value data :start t))
-	      (setf (getf data :direction) 'forward
-		    (getf data :index) (1+ (meme--value data :start t)))))
-	  (setf (getf data :timestamp) (float-time))
+	      (setf (cl-getf data :direction) 'forward
+		    (cl-getf data :index) (1+ (meme--value data :start t)))))
+	  (setf (cl-getf data :timestamp) (float-time))
 	  (meme--update-image meme-data
-			      (elt (getf data :files) (getf data :index))
-			      (getf data :size))
+			      (elt (cl-getf data :files) (cl-getf data :index))
+			      (cl-getf data :size))
 	  (setq meme--timer
 		(run-at-time
 		 at-time
@@ -518,22 +518,22 @@
 	 (findex 0)
 	 (data (cadr meme-animation)))
     (with-temp-buffer
-      (loop for index from (meme--value data :start t) upto
-	    (1- (meme--value data :end t)) by (1+ (meme--value data :skip t))
-	    do (push (meme--write-animated-image
-		      prefix (incf findex)
-		      meme-data data index
-		      (and make-mp4 meme-mp4-output-width))
-		     temp-files))
+      (cl-loop for index from (meme--value data :start t) upto
+	       (1- (meme--value data :end t)) by (1+ (meme--value data :skip t))
+	       do (push (meme--write-animated-image
+		         prefix (cl-incf findex)
+		         meme-data data index
+		         (and make-mp4 meme-mp4-output-width))
+		        temp-files))
       (unless (equal (meme--value data :mode) "restart")
-	(loop for index from (- (meme--value data :end t) 2)
-	      downto (1+ (meme--value data :start t))
-	      by (1+ (meme--value data :skip t))
-	      do (push (meme--write-animated-image
-			prefix (incf findex)
-			meme-data data index
-			(and make-mp4 meme-mp4-output-width))
-		       temp-files)))
+	(cl-loop for index from (- (meme--value data :end t) 2)
+	         downto (1+ (meme--value data :start t))
+	         by (1+ (meme--value data :skip t))
+	         do (push (meme--write-animated-image
+			   prefix (cl-incf findex)
+			   meme-data data index
+			   (and make-mp4 meme-mp4-output-width))
+		          temp-files)))
       (write-region (point-min) (point-max) files-name nil 'silent))
     (if make-mp4
 	(setq file (format "%s.mp4" file))
@@ -573,11 +573,11 @@
     (if (and (zerop (length (meme--value (plist-get meme-data :top) :text)))
 	     (zerop (length (meme--value (plist-get meme-data :bottom) :text))))
 	(call-process "convert" nil nil nil
-		      (elt (getf data :file-names) index) file)
+		      (elt (cl-getf data :file-names) index) file)
       (with-temp-buffer
 	(insert (meme--make-animated-image
-		 meme-data (elt (getf data :files) index)
-		 (getf data :size)
+		 meme-data (elt (cl-getf data :files) index)
+		 (cl-getf data :size)
 		 width))
 	(call-process-region (point-min) (point-max) "convert"
 			     nil nil nil "svg:-"
