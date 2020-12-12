@@ -545,7 +545,7 @@
 		      "-r" (meme--value data :rate)
 		      "-f" "image2"
 		      "-s" "1920x1080"
-		      "-i" (concat "/tmp/" prefix "%04d.png")
+		      "-i" (concat (temporary-file-directory) prefix "%04d.png")
 		      "-vcodec" "libx264"
 		      "-crf" "25"
 		      "-vf" "pad=ceil(iw/2)*2:ceil(ih/2)*2"
@@ -567,7 +567,7 @@
 
 (defun meme--write-animated-image (prefix findex meme-data data index
 					  width)
-  (let ((file (format "/tmp/%s%04d.png" prefix findex)))
+  (let ((file (format "%s%s%04d.png" (temporary-file-directory) prefix findex)))
     (insert (format "'%s'\n" file))
     (sleep-for 0.01)
     (if (and (zerop (length (meme--value (plist-get meme-data :top) :text)))
