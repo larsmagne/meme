@@ -120,9 +120,10 @@
   (set-buffer-multibyte nil)
   (insert-file-contents file)
   (sleep-for 0.01)
-  (call-process-region (point-min) (point-max) "convert" t (current-buffer)
-		       nil "-trim" "-fuzz" "4%"
-		       "jpg:-" "jpg:-"))
+  (when nil
+    (call-process-region (point-min) (point-max) "convert" t (current-buffer)
+			 nil "-trim" "-fuzz" "4%"
+			 "jpg:-" "jpg:-")))
 
 (defun meme--image-data (image image-type)
   (with-temp-buffer
@@ -173,7 +174,8 @@
 		      20)
 		   pixels))
 	 (inhibit-read-only t)
-	 (i 0))
+	 (i 0)
+	 image-width image)
     (erase-buffer)
     (dolist (file (directory-files dir t ".jpg\\'"))
       (when (and (not (bolp))
@@ -463,7 +465,7 @@
 		      (setf (cl-getf data :direction) 'backward
 			    (cl-getf data :index) (1- (meme--value data :end t)))
 		    (setf (cl-getf data :index) (meme--value data :start t)))))
-	    (decf (cl-getf data :index) (1+ (meme--value data :skip t)))
+	    (cl-decf (cl-getf data :index) (1+ (meme--value data :skip t)))
 	    (when (<= (plist-get data :index) (meme--value data :start t))
 	      (setf (cl-getf data :direction) 'forward
 		    (cl-getf data :index) (1+ (meme--value data :start t)))))
@@ -501,7 +503,6 @@
     (with-temp-buffer
       (svg-print svg)
       (goto-char (point-min))
-      (setq a (list (current-buffer) (buffer-string)))
       (search-forward "/xlink\">")
       (insert "<image xlink:href=\"")
       (insert base64)
