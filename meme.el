@@ -303,7 +303,7 @@
 	 (i 0))
     (when (and bottom
 	       (> (length bits) 1))
-      (decf y-offset (* font-size (1- (length bits)))))
+      (cl-decf y-offset (* font-size (1- (length bits)))))
     (dotimes (i 10)
       (dolist (version '("a" "b"))
 	(svg-remove svg (format "%s-%d-%s" (plist-get elem :name) i version))))
