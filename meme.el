@@ -48,6 +48,9 @@
 (defvar meme-font "impact")
 (defvar meme--timer nil)
 
+(defvar meme-trim-gif t
+  "If non-nil, trim images before making gifs.")
+
 (defun meme ()
   "Create a meme image interactively in Emacs."
   (interactive)
@@ -120,7 +123,7 @@
   (set-buffer-multibyte nil)
   (insert-file-contents file)
   (sleep-for 0.01)
-  (when nil
+  (when meme-trim-gif
     (call-process-region (point-min) (point-max) "convert" t (current-buffer)
 			 nil "-trim" "-fuzz" "4%"
 			 "jpg:-" "jpg:-")))
@@ -572,7 +575,8 @@
     (insert (format "'%s'\n" file))
     (sleep-for 0.01)
     (if (and (zerop (length (meme--value (plist-get meme-data :top) :text)))
-	     (zerop (length (meme--value (plist-get meme-data :bottom) :text))))
+	     (zerop (length (meme--value (plist-get meme-data :bottom) :text)))
+	     (not meme-trim-gif))
 	(call-process "convert" nil nil nil
 		      (elt (cl-getf data :file-names) index) file)
       (with-temp-buffer
