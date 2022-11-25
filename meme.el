@@ -86,10 +86,15 @@
     (forward-line 4)
     (insert "GIF    ")
     (let ((elem (list :start (meme--text-input "start" 4 "0"))))
+      (plist-put elem :crop (meme--find-crop
+			     (mapcar (lambda (f)
+				       (expand-file-name f directory))
+				     files)))
       (plist-put elem :files (mapcar (lambda (f)
 				       (meme--image-data 
 					(expand-file-name f directory)
-					"image/jpeg"))
+					"image/jpeg"
+					(plist-get elem :crop)))
 				     files))
       (plist-put elem :file-names (mapcar (lambda (f)
 					    (expand-file-name f directory))
@@ -99,7 +104,8 @@
 					 (with-temp-buffer
 					   (meme--insert-and-trim
 					    (expand-file-name (car files)
-							      directory))
+							      directory)
+					    (plist-get elem :crop))
 					   (buffer-string))
 					 nil t)
 					t))
@@ -119,21 +125,64 @@
     (add-hook 'after-change-functions #'eww-process-text-input nil t)
     nil))
 
-(defun meme--insert-and-trim (file)
+(defun meme--find-crop (files)
+  (let ((crops nil))
+    (dolist (file files)
+      (with-temp-buffer
+	(call-process
+	 "convert" nil t nil
+	 "-trim" "-fuzz" watch-directory-trim-fuzz
+	 file "info:-")
+	(let* ((data (seq-take
+		      (nreverse
+		       (seq-take (nreverse
+				  (split-string (string-trim
+						 (buffer-string))))
+				 7))
+		      2))
+	       (left (string-to-number (nth 1 (split-string (cadr data)
+							    "\\+"))))
+	       (top (string-to-number (nth 2 (split-string (cadr data)
+							   "\\+"))))
+	       (width (string-to-number
+		       (car (split-string (car data) "x"))))
+
+	       (height (string-to-number
+			(cadr (split-string (car data) "x")))))
+	  (push (list width height left top) crops))))
+    ;; We now have a number of crops -- pick the most likely
+    ;; one.  Sort by width first.
+    (setq crops (sort crops
+		      (lambda (c1 c2)
+			(< (car c1) (car c2)))))
+    ;; Pick the ones with the median size.
+    (let* ((m (nth (/ (length crops) 2) crops))
+	   (median (* (car m) (cadr m))))
+      (setq crops (seq-filter (lambda (c)
+				(= (* (car c) (cadr c)) median))
+			      crops)))
+    ;; Pick the median offset.
+    (setq crops (sort crops
+		      (lambda (c1 c2)
+			(< (nth 2 c1) (nth 2 c2)))))
+    (nth (/ (length crops) 2) crops)))
+
+(defun meme--insert-and-trim (file crop)
   (set-buffer-multibyte nil)
   (insert-file-contents file)
   (sleep-for 0.01)
   (when meme-trim-gif
     (call-process-region (point-min) (point-max) "convert" t (current-buffer)
-			 nil "-trim" "-fuzz" "4%"
+			 nil
+			 "-crop" (apply #'format "%dx%d+%d+%d" crop)
 			 "jpg:-" "jpg:-")))
 
-(defun meme--image-data (image image-type)
+(defun meme--image-data (image itype crop)
   (with-temp-buffer
-    (meme--insert-and-trim image)
+    (meme--insert-and-trim image crop)
     (base64-encode-region (point-min) (point-max) t)
     (goto-char (point-min))
-    (insert "data:" image-type ";base64,")
+    (insert "data:" itype ";base64,")
     (buffer-string)))
 
 (defun meme--fix-point ()
@@ -447,8 +496,8 @@
       (save-excursion
 	(let* ((inhibit-read-only t)
 	       (delay (- (float-time) (plist-get data :timestamp)))
-	       (at-time (max 0.001 (- (/ 1.0 (max (meme--value data :rate t) 1))
-				      delay))))
+	       (comp-delay (/ 1.0 (max (meme--value data :rate t) 1)))
+	       (at-time (max 0.001 (- comp-delay (- delay comp-delay)))))
 	  (goto-char (point-min))
 	  (when (re-search-forward "^Length:" nil t)
 	    (delete-region (match-beginning 0)
@@ -575,10 +624,14 @@
     (insert (format "'%s'\n" file))
     (sleep-for 0.01)
     (if (and (zerop (length (meme--value (plist-get meme-data :top) :text)))
-	     (zerop (length (meme--value (plist-get meme-data :bottom) :text)))
-	     (not meme-trim-gif))
-	(call-process "convert" nil nil nil
-		      (elt (cl-getf data :file-names) index) file)
+	     (zerop (length (meme--value (plist-get meme-data :bottom) :text))))
+	(if meme-trim-gif
+	    (call-process "convert" nil nil nil
+			  "-crop" (apply #'format "%dx%d+%d+%d"
+					 (cl-getf data :crop))
+			  (elt (cl-getf data :file-names) index) file)
+	  (call-process "convert" nil nil nil
+			(elt (cl-getf data :file-names) index) file))
       (with-temp-buffer
 	(insert (meme--make-animated-image
 		 meme-data (elt (cl-getf data :files) index)
