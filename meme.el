@@ -130,7 +130,7 @@
     (dolist (file files)
       (with-temp-buffer
 	(call-process
-	 "convert" nil t nil
+	 "convert" nil '(t nil) nil
 	 "-trim" "-fuzz" watch-directory-trim-fuzz
 	 file "info:-")
 	(let* ((data (seq-take
@@ -141,9 +141,9 @@
 				 7))
 		      2))
 	       (left (string-to-number (nth 1 (split-string (cadr data)
-							    "\\+"))))
+							    "[+-]"))))
 	       (top (string-to-number (nth 2 (split-string (cadr data)
-							   "\\+"))))
+							   "[+-]"))))
 	       (width (string-to-number
 		       (car (split-string (car data) "x"))))
 
@@ -220,7 +220,7 @@
 (defun meme--insert-thumbnails ()
   (let* ((dir (expand-file-name
 	       "images" (file-name-directory (locate-library "meme"))))
-	 (pixels 180)
+	 (pixels (truncate (* 180 (image-compute-scaling-factor))))
 	 (width (/ (- (nth 2 (window-pixel-edges))
 		      (nth 0 (window-pixel-edges))
 		      20)
