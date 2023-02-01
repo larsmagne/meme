@@ -16,9 +16,6 @@ with all the normal image-related goodies.
 See [[https://lars.ingebrigtsen.no/2014/11/13/welcome-new-emacs-developers/][Welcome New Emacs Developers]] for simple instructions on how to do
 this.
 
-Alternatively [[https://www.archlinux.org][Arch Users]] can install the latest development branch
-from the [[https://aur.archlinux.org/packages/emacs-git/][AUR]]. This library has been tested with =emacs-git 25.1.50.r126117-1=.
-
 ** imgur.el library
 
 Meme.el depends on [[https://github.com/larsmagne/imgur.el][imgur.el]]. Download it and put it in your
