@@ -10,9 +10,8 @@
    - [[#select-an-image-file][Select an Image File]]
 * Dependencies
 ** Emacs Version
-To use this library, you need the Emacs master trunk from the 30th of
-June 2016 or later.  It has to be built with all the normal goodies,
-including ImageMagick support.
+To use this library, you need Emacs 29 or later.  It has to be built
+with all the normal image-related goodies.
 
 See [[https://lars.ingebrigtsen.no/2014/11/13/welcome-new-emacs-developers/][Welcome New Emacs Developers]] for simple instructions on how to do
 this.
