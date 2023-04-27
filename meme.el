@@ -567,7 +567,6 @@
     (when-let ((extra (plist-get data :extra-overlay)))
       (funcall extra svg width height))
     (with-temp-buffer
-      (set-buffer-multibyte nil)
       (svg-print svg)
       (goto-char (point-min))
       (search-forward "/xlink\">")
@@ -578,10 +577,6 @@
       (insert (format "\" height=\"%s\" width=\"%s\"></image> "
 		      height
 		      width))
-      (when nil
-	(call-process-region (point-min) (point-max) "convert"
-			     t t nil "svg:-"
-			     "jpg:-"))
       (buffer-string))))
 
 (defun meme--save-animation (format file)
@@ -624,7 +619,7 @@
 		    "-vf" "pad=ceil(iw/2)*2:ceil(ih/2)*2"
 		    "-pix_fmt" "yuv420p"
 		    (expand-file-name file)))
-     ((or (eq format 'gif) (eq format 'gif))
+     ((or (eq format 'gif) (eq format 'webp))
       (call-process "convert" nil (get-buffer-create "*convert*") nil
 		    "-dispose" "none"
 		    ;; Our delay is in frames per second, but
