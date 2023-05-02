@@ -222,7 +222,7 @@
 (defun meme--insert-thumbnails ()
   (let* ((dir (expand-file-name
 	       "images" (file-name-directory (locate-library "meme"))))
-	 (pixels (truncate (* 180 (image-compute-scaling-factor))))
+	 (pixels (truncate (* 180 (image-compute-scaling-factor 1))))
 	 (width (/ (- (nth 2 (window-pixel-edges))
 		      (nth 0 (window-pixel-edges))
 		      20)
