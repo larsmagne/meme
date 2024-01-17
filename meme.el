@@ -480,7 +480,7 @@
       (when exit
 	(kill-buffer (current-buffer))
 	(insert
-	 (format "<video autoplay loop muted controls><source src=%S type=\"video/mp4\"></video>\n\n"
+	 (format "<video autoplay loop muted><source src=%S type=\"video/mp4\"></video>\n\n"
 		 out)))))
    ((eq (car (read-multiple-choice
 	      "Save or upload?"
