@@ -36,16 +36,33 @@
 (require 'svg)
 (require 'imgur)
 
-(defvar meme-width 1200
-  "The width of the meme images that are generated.")
+(defgroup meme nil
+	"Meme-related options."
+	:group 'multimedia)
 
-(defvar meme-mp4-output-width 1200
-  "Resulting width of mp4 files.")
+(defcustom meme-dir (expand-file-name "images" (file-name-directory (locate-library "meme")))
+	"The directory with meme files."
+	:group 'meme
+	:type 'directory)
+
+(defcustom meme-width 1200
+  "The width of the meme images that are generated."
+	:group 'meme
+	:type 'natnum)
+
+(defcustom meme-mp4-output-width 1200
+  "Resulting width of mp4 files."
+	:group 'meme
+	:type 'natnum)
+
+(defcustom meme-font "impact"
+	"Font to use."
+	:group 'meme
+	:type 'string)
 
 (defvar meme-svg)
 (defvar meme-animation)
 (defvar meme-column)
-(defvar meme-font "impact")
 (defvar meme--timer nil)
 
 (defvar meme-trim-gif t
@@ -220,8 +237,7 @@
     map))
 
 (defun meme--insert-thumbnails ()
-  (let* ((dir (expand-file-name
-	       "images" (file-name-directory (locate-library "meme"))))
+  (let* ((dir meme-dir)
 	 (pixels (truncate (* 180 (image-compute-scaling-factor))))
 	 (width (/ (- (nth 2 (window-pixel-edges))
 		      (nth 0 (window-pixel-edges))
@@ -278,7 +294,7 @@
     (plist-put elem :align (meme--text-input
 			    (format "%s-align" name) 8 "middle"))
     (plist-put elem :family (meme--text-input
-			     (format "%s-family" name) 10 "impact"))
+			     (format "%s-family" name) 10 meme-font))
     (insert "\n")
     elem))
 
