@@ -480,8 +480,9 @@
       (when exit
 	(kill-buffer (current-buffer))
 	(insert
-	 (format "<video autoplay loop muted><source src=%S type=\"video/mp4\"></video>\n\n"
-		 out)))))
+	 (format "<video autoplay loop muted poster=%S><source src=%S type=\"video/mp4\"></video>\n\n"
+		 (cdr out)
+		 (car out))))))
    ((eq (car (read-multiple-choice
 	      "Save or upload?"
 	      '((?s "save" "Save the meme in the format of your choice")
@@ -598,6 +599,7 @@
 (defun meme--save-animation (format file)
   (let* ((files-name (make-temp-file "giffy"))
 	 (temp-files (list files-name))
+	 (img-files nil)
 	 (prefix (concat (file-name-nondirectory files-name) "-"))
 	 (meme-data (car meme-animation))
 	 (findex 0)
@@ -609,7 +611,7 @@
 		         prefix (cl-incf findex)
 		         meme-data data index
 		         meme-mp4-output-width)
-		        temp-files))
+		        img-files))
       (unless (equal (meme--value data :mode) "restart")
 	(cl-loop for index from (- (meme--value data :end t) 2)
 	         downto (1+ (meme--value data :start t))
@@ -618,7 +620,7 @@
 			   prefix (cl-incf findex)
 			   meme-data data index
 			   meme-mp4-output-width)
-		          temp-files)))
+		          img-files)))
       (write-region (point-min) (point-max) files-name nil 'silent))
     (setq file (format "%s.%s" file format))
     (when (file-exists-p file)
@@ -647,9 +649,12 @@
 		    "-coalesce"
 		    "-loop" "0"
 		    (expand-file-name file))))
-    (mapc #'delete-file temp-files)
+    (setq img-files (nreverse img-files))
+    (mapc #'delete-file (append (cdr img-files) temp-files))
     (message "%s created" file)
-    file))
+    ;; Return a cons of the anim file and the first image (to be used
+    ;; as a poster).
+    (cons file (car img-files))))
 
 (defun meme--write-animated-image (prefix findex meme-data data index
 					  width)
