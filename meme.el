@@ -597,7 +597,7 @@
       (buffer-string))))
 
 (defun meme--save-animation (format file)
-  (let* ((files-name (make-temp-file "giffy"))
+  (let* ((files-name (make-temp-file "anim-"))
 	 (temp-files (list files-name))
 	 (img-files nil)
 	 (prefix (concat (file-name-nondirectory files-name) "-"))
