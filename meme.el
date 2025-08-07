@@ -298,6 +298,15 @@
     (insert "\n")
     elem))
 
+(defun meme--image-type-for-svg (file)
+  (concat
+   "image/"
+   (downcase
+    (with-temp-buffer
+      (set-buffer-multibyte nil)
+      (call-process "identify" nil t nil "-format" "%m" (expand-file-name file))
+      (buffer-string)))))
+
 (defun meme--setup-image (file)
   (let ((inhibit-read-only t))
     (erase-buffer))
@@ -321,11 +330,7 @@
 		   (meme--image-type)
 		   nil :max-width 120)
 		  " ")
-    (svg-embed svg file
-	       (if (string-match "png$" file)
-		   "image/png"
-		 "image/jpeg")
-	       nil
+    (svg-embed svg file (meme--image-type-for-svg file) nil
 	       :width width
 	       :height (round height))
     (eww-size-text-inputs)
