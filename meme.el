@@ -486,8 +486,8 @@
 	(kill-buffer (current-buffer))
 	(insert
 	 (format "<video autoplay loop muted poster=%S><source src=%S type=\"video/mp4\"></video>\n\n"
-		 (cdr out)
-		 (car out))))))
+		 (concat "file://" (expand-file-name (cdr out)))
+		 (concat "file://" (expand-file-name (car out))))))))
    ((eq (car (read-multiple-choice
 	      "Save or upload?"
 	      '((?s "save" "Save the meme in the format of your choice")
