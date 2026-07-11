@@ -85,6 +85,21 @@
   (meme-mode)
   (meme--setup-image file))
 
+(defun meme-url (url)
+  "Create a meme from URL, which should point to an image."
+  (interactive "sImage URL to memefy: ")
+  (let ((image
+	 (with-current-buffer (url-retrieve-synchronously url)
+	   (goto-char (point-min))
+	   (unwind-protect 
+	       (if (not (search-forward "\n\n" nil t))
+		   (error "Couldn't download %s" url)
+		 (buffer-substring (point) (point-max)))
+	     (kill-buffer (current-buffer))))))
+    (switch-to-buffer (get-buffer-create "*meme*"))
+    (meme-mode)
+    (meme--setup-image nil image)))
+
 (defun meme-gif (directory match &optional extra-overlay)
   "Create a animated meme GIF interactively in Emacs."
   (interactive "DSource directory: \nsMatching files (regexp): ")
@@ -151,24 +166,15 @@
 	(call-process
 	 "convert" nil '(t nil) nil
 	 "-trim" "-fuzz" watch-directory-trim-fuzz
-	 file "info:-")
-	(let* ((data (seq-take
-		      (nreverse
-		       (seq-take (nreverse
-				  (split-string (string-trim
-						 (buffer-string))))
-				 7))
-		      2))
-	       (left (string-to-number (nth 1 (split-string (cadr data)
-							    "[+-]"))))
-	       (top (string-to-number (nth 2 (split-string (cadr data)
-							   "[+-]"))))
-	       (width (string-to-number
-		       (car (split-string (car data) "x"))))
-
-	       (height (string-to-number
-			(cadr (split-string (car data) "x")))))
-	  (push (list width height left top) crops))))
+	 file "json:-")
+	(goto-char (point-min))
+	(let ((json (plist-get (elt (json-parse-buffer :object-type 'plist) 0)
+			       :image)))
+	  (push (list (plist-get (plist-get json :geometry) :width)
+		      (plist-get (plist-get json :geometry) :height)
+		      (plist-get (plist-get json :pageGeometry) :x)
+		      (plist-get (plist-get json :pageGeometry) :y))
+		crops))))
     ;; We now have a number of crops -- pick the most likely
     ;; one.  Sort by width first.
     (setq crops (sort crops
@@ -298,20 +304,28 @@
     (insert "\n")
     elem))
 
-(defun meme--image-type-for-svg (file)
+(defun meme--image-type-for-svg (file &optional data)
   (concat
    "image/"
    (downcase
     (with-temp-buffer
       (set-buffer-multibyte nil)
-      (call-process "identify" nil t nil "-format" "%m" (expand-file-name file))
+      (if data
+	  (progn
+	    (insert data)
+	    (call-process-region (point-min) (point-max)
+				 "identify" t t nil
+				 "-format" "%m" "-"))
+	(call-process "identify" nil t nil
+		      "-format" "%m" (expand-file-name file)))
       (buffer-string)))))
 
-(defun meme--setup-image (file)
+(defun meme--setup-image (file &optional data)
   (let ((inhibit-read-only t))
     (erase-buffer))
   (let* ((image-scaling-factor 1)
-	 (image (create-image file (meme--image-type)))
+	 (image (create-image
+		 (or data file) (meme--image-type) (not (not data))))
 	 (image-size (image-size image t))
 	 (width meme-width)
 	 (height (* (cdr image-size) (/ width (float (car image-size)))))
@@ -330,7 +344,9 @@
 		   (meme--image-type)
 		   nil :max-width 120)
 		  " ")
-    (svg-embed svg file (meme--image-type-for-svg file) nil
+    (svg-embed svg (or data file)
+	       (meme--image-type-for-svg file data)
+	       (not (not data))
 	       :width width
 	       :height (round height))
     (eww-size-text-inputs)
@@ -513,14 +529,20 @@
 (defun meme-create-image (file)
   "Write the meme in the current buffer to a file."
   (interactive "FFile name to write to: ")
-  (let ((svg meme-svg))
+  (let ((svg meme-svg)
+	tmp)
     (with-temp-buffer
       (svg-print svg)
       (if (string-match "\\.svg\\'" file)
 	  (write-region (point-min) (point-max) file)
-	(call-process-region (point-min) (point-max) "convert"
-			     nil nil nil "svg:-"
-			     (file-truename file))))))
+	(unwind-protect
+	    (progn
+	      (setq tmp (make-temp-file "meme" nil ".svg"))
+	      (write-region (point-min) (point-max) file nil 'silent)
+	      (call-process "convert" nil nil nil tmp
+			    (file-truename file)))
+	  (when (and tmp (file-exists-p tmp))
+	    (delete-file tmp)))))))
 
 (defun meme--animate (meme-data data)
   (when (buffer-live-p (plist-get data :buffer))
