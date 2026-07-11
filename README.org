@@ -59,3 +59,5 @@ You can now effectively generate memes within Emacs from
 stored in =/path/to/src/meme/images=
 ** Select an Image File
 ~M-x meme-file~ will let you browse to the desired image file.
+** Download an Image
+~M-x meme-url~ will download the specified image and use that.
