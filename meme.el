@@ -538,9 +538,9 @@
 	(unwind-protect
 	    (progn
 	      (setq tmp (make-temp-file "meme" nil ".svg"))
-	      (write-region (point-min) (point-max) file nil 'silent)
-	      (call-process "convert" nil nil nil tmp
-			    (file-truename file)))
+	      (write-region (point-min) (point-max) tmp nil 'silent)
+	      (call-process "convert" nil nil nil
+			    tmp (file-truename file)))
 	  (when (and tmp (file-exists-p tmp))
 	    (delete-file tmp)))))))
 
