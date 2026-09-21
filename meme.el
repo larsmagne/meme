@@ -156,7 +156,11 @@
       (meme--animate meme-data elem)
       (setq-local meme-animation (list meme-data elem)))
     (eww-size-text-inputs)
-    (add-hook 'after-change-functions #'eww-process-text-input nil t)
+    (add-hook 'after-change-functions
+							(if (functionp 'eww--process-text-input)
+									#'eww--process-text-input
+								#'eww-process-text-input)
+							nil t)
     nil))
 
 (defun meme--find-crop (files)
@@ -354,7 +358,11 @@
     (setq-local meme-svg svg)
     (setq-local meme-animation nil)
     (setq after-change-functions nil)
-    (add-hook 'after-change-functions #'eww-process-text-input nil t)
+    (add-hook 'after-change-functions
+							(if (functionp 'eww--process-text-input)
+									#'eww--process-text-input
+								#'eww-process-text-input)
+							nil t)
     (setq-local post-command-hook nil)
     (setq buffer-read-only t)
     (add-hook 'post-command-hook
